@@ -36,6 +36,19 @@
   - 選 Day 後可選擇時間（選填），確認後直接寫入 itinerary
 - **影響範圍**：`[id].vue` AI 推薦 section + `useTripsStore.ts`
 
+### 行程卡片 Google Maps 連結（已實作基礎）
+- **已完成**：`TripEntry` 加 `mapUrl?: string`，編輯表單加「📍 Google Maps 連結」欄位
+- **已完成**：卡片有 mapUrl 時顯示地圖 pin icon，點擊展開 iframe（用景點名稱 embed）+ 「在 Google Maps 開啟 ↗」外連
+- **待優化**：桌機欄位 entry 卡也加地圖 icon（目前只有手機）
+
+### 票券 QR Code 展示
+- **需求**：訂單管理中心的票券類型，若有 QR Code 可直接在 app 內顯示，方便現場掃碼
+- **方向**：
+  - Booking card 上加「掃碼」按鈕，展開 QR Code 圖片
+  - 來源：使用者上傳圖片，或從 PDF 確認信解析時嘗試提取 QR Code
+  - 技術選項：`qrcode` / `jsQR` 前端 decode；或讓使用者直接上傳 QR Code 截圖
+- **影響範圍**：`Booking` interface 加 `qrCodeUrl?: string`，Info Tab Booking 卡片
+
 ---
 
 ## 今日進度（2026-06-18）—— 續

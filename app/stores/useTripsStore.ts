@@ -8,6 +8,7 @@ export interface TripEntry {
   name: string
   note?: string
   order?: number
+  mapUrl?: string
 }
 
 export interface Booking {

@@ -195,12 +195,34 @@
                   </div>
                   <p class="font-bold text-stone-900 text-base leading-snug">{{ entry.name }}</p>
                   <p v-if="entry.note" class="text-sm text-stone-400 mt-0.5">{{ entry.note }}</p>
+                  <!-- 地圖按鈕 -->
+                  <button
+                    v-if="entry.mapUrl"
+                    @click.stop="toggleMap(entry.id)"
+                    class="mt-1.5 flex items-center gap-1 text-xs text-stone-400 hover:text-amber-600 transition-colors"
+                  >
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {{ openMapId === entry.id ? '收起地圖' : '展開地圖' }}
+                  </button>
                 </div>
                 <button
                   @click.stop="removeEntry(entry.id)"
                   class="text-stone-200 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0 mt-0.5"
                 >×</button>
               </div>
+            </div>
+          </div>
+
+          <!-- 地圖展開 -->
+          <div v-if="openMapId === entry.id && entry.mapUrl" class="border-t border-stone-100">
+            <iframe
+              :src="`https://maps.google.com/maps?q=${encodeURIComponent(entry.name)}&output=embed`"
+              class="w-full h-52 border-0"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+            <div class="px-3 py-2 flex justify-end">
+              <a :href="entry.mapUrl" target="_blank" rel="noopener" class="text-xs text-amber-600 hover:underline">在 Google Maps 開啟 ↗</a>
             </div>
           </div>
 
@@ -219,6 +241,7 @@
             </div>
             <input v-model="inlineEdit.name" placeholder="活動名稱" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 bg-white" />
             <input v-model="inlineEdit.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 bg-white" />
+            <input v-model="inlineEdit.mapUrl" placeholder="📍 Google Maps 連結（選填）" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 bg-white" />
             <div class="flex items-center justify-between gap-2">
               <div class="flex gap-1.5">
                 <button
@@ -738,6 +761,7 @@
         </div>
         <input v-model="newEntry.name" placeholder="活動名稱" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
         <input v-model="newEntry.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+        <input v-model="newEntry.mapUrl" placeholder="📍 Google Maps 連結（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
         <div class="flex gap-2 pt-1">
           <button
             @click="editingDesktopEntryId ? saveDesktopEdit() : addEntryFromModal()"
@@ -933,8 +957,8 @@ const currentDayEntries = computed(() => {
     })
 })
 
-const newEntry = reactive<{ time: string; category: TripEntry['category']; name: string; note: string }>({
-  time: '', category: 'attraction', name: '', note: ''
+const newEntry = reactive<{ time: string; category: TripEntry['category']; name: string; note: string; mapUrl: string }>({
+  time: '', category: 'attraction', name: '', note: '', mapUrl: ''
 })
 
 const addEntry = () => {
@@ -947,7 +971,7 @@ const addEntry = () => {
     ...newEntry, date: day.date, id: Date.now().toString(), order: maxOrder + 10
   }]
   tripsStore.updateTrip(trip.value.id, { itinerary })
-  Object.assign(newEntry, { time: '', category: 'attraction', name: '', note: '' })
+  Object.assign(newEntry, { time: '', category: 'attraction', name: '', note: '', mapUrl: '' })
   showAddForm.value = false
 }
 
@@ -958,14 +982,16 @@ const removeEntry = (entryId: string) => {
 }
 
 const editingEntryId = ref<string | null>(null)
-const inlineEdit = reactive({ time: '', category: 'attraction' as TripEntry['category'], name: '', note: '' })
+const openMapId = ref<string | null>(null)
+const toggleMap = (id: string) => { openMapId.value = openMapId.value === id ? null : id }
+const inlineEdit = reactive({ time: '', category: 'attraction' as TripEntry['category'], name: '', note: '', mapUrl: '' })
 
 const openInlineEdit = (entry: TripEntry) => {
   if (editingEntryId.value === entry.id) {
     editingEntryId.value = null
     return
   }
-  Object.assign(inlineEdit, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '' })
+  Object.assign(inlineEdit, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '', mapUrl: entry.mapUrl || '' })
   editingEntryId.value = entry.id
 }
 
@@ -1290,14 +1316,14 @@ const editingDesktopEntryId = ref<string | null>(null)
 const openAddFormForDay = (date: string) => {
   addFormDate.value = date
   editingDesktopEntryId.value = null
-  Object.assign(newEntry, { time: '', category: 'attraction', name: '', note: '' })
+  Object.assign(newEntry, { time: '', category: 'attraction', name: '', note: '', mapUrl: '' })
   showDesktopAddModal.value = true
 }
 
 const openDesktopEdit = (entry: TripEntry, date: string) => {
   addFormDate.value = date
   editingDesktopEntryId.value = entry.id
-  Object.assign(newEntry, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '' })
+  Object.assign(newEntry, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '', mapUrl: entry.mapUrl || '' })
   showDesktopAddModal.value = true
 }
 
