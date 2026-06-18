@@ -10,6 +10,21 @@ export interface TripEntry {
   order?: number
 }
 
+export interface Booking {
+  id: string
+  type: 'hotel' | 'flight' | 'ticket' | 'car_rental' | 'train' | 'other'
+  name: string
+  confirmationNumber: string | null
+  startDate: string | null
+  startTime: string | null
+  endDate: string | null
+  endTime: string | null
+  location: string | null
+  note: string | null
+  price: string | null
+  createdAt: string
+}
+
 export interface StandbyItem {
   id: string
   category: string
@@ -29,9 +44,10 @@ export interface Trip {
   createdAt: string
   itinerary: TripEntry[]
   standby: StandbyItem[]
+  bookings: Booking[]
 }
 
-type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby'>
+type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby' | 'bookings'>
 
 export const useTripsStore = defineStore('trips', {
   state: () => ({
@@ -58,7 +74,8 @@ export const useTripsStore = defineStore('trips', {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
         itinerary: [],
-        standby: []
+        standby: [],
+        bookings: []
       }
       this.trips.unshift(newTrip)
       this.save()
@@ -182,6 +199,23 @@ export const useTripsStore = defineStore('trips', {
         e.id === entryId ? { ...e, date: newDate } : e
       )
       this.updateTrip(tripId, { itinerary: newItinerary })
+    },
+
+    addBooking(tripId: string, booking: Omit<Booking, 'id' | 'createdAt'>) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const bookings: Booking[] = [
+        ...(trip.bookings || []),
+        { ...booking, id: Date.now().toString(), createdAt: new Date().toISOString() }
+      ]
+      this.updateTrip(tripId, { bookings })
+    },
+
+    removeBooking(tripId: string, bookingId: string) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const bookings = (trip.bookings || []).filter(b => b.id !== bookingId)
+      this.updateTrip(tripId, { bookings })
     }
   }
 })

@@ -1,5 +1,74 @@
 # Dev Notes
 
+## 今日進度（2026-06-18）—— 續2
+
+#### 視覺設計（行程欄位）
+- 桌機 Day 欄位卡片：拿掉 navy 黑色 header，改為白底 + 細頂線 + amber 圓點設計
+- 欄位背景 `bg-white border border-stone-200 shadow-sm`，entry 行 `bg-stone-50` hover 加深
+- entry 左色條按類別上色（amber/orange/sky/emerald/violet），× 按鈕 hover 才顯示
+- 時間沒填時不顯示 `--:--`，減少視覺雜訊
+- 欄位加寬 `w-56` → `w-72`，內距加大，`min-h-[480px]` 撐開高度
+- 橫向捲軸：`scrollbar-hide` CSS 隱藏原生捲軸，右側加漸層淡出提示可繼續滑動
+
+#### AI 推薦改成側邊抽屜
+- 舊：頁面底部展開一塊深色 panel
+- 新：點「✨ AI 推薦」從右側滑入 `w-96` 抽屜，帶半透明遮罩
+- 抽屜內有類別篩選、推薦卡（白底邊框）、換一批、頁數
+- 點遮罩或 × 關閉，`Teleport to="body"` + CSS transition 動畫
+
+#### 其他細節
+- 目的地標題旁「編輯」改為鉛筆 SVG icon，靠近標題不推到右邊
+- Day 選擇器 active 從黑色改為 `bg-amber-400`
+- 桌機右側內容區加 `min-w-0` 修復 CSS Grid overflow 問題
+- `scrollbar-hide` 的 CSS 寫進 `<style scoped>` 因為沒裝 plugin
+
+---
+
+## 待實作功能
+
+### AI 推薦卡「排入行程」dialog
+- **需求**：點推薦卡上的「加入備用」改為可選擇直接排入某天
+- **原因**：拖曳方式在 10 天行程要拖很遠，UX 差
+- **設計方向**：
+  - 點推薦卡 → 開 dialog
+  - Dialog 顯示景點名稱 + 描述
+  - 選擇行動：「加入備用」或「排入 Day N」（列出所有天）
+  - 選 Day 後可選擇時間（選填），確認後直接寫入 itinerary
+- **影響範圍**：`[id].vue` AI 推薦 section + `useTripsStore.ts`
+
+---
+
+## 今日進度（2026-06-18）—— 續
+
+#### UI 優化
+- 桌機總覽 Tab 從左側 nav 收掉（手機底部 tab 保留）
+- 行程 inline 編輯：手機點 entry 展開，桌機點 entry 開 modal
+- TimePicker 換成自製 HH:MM 雙欄 input（通吃手機/桌機）
+- DateRangePicker 換成原生 `type="date"` 加樣式
+- 安裝 Vant（@vant/nuxt），picker 類暫不使用，其他組件後續可用
+- Layout navbar 加上下文感知 `‹` chevron（非首頁才顯示），移除各頁面的舊「返回」連結
+
+---
+
+## 今日進度（2026-06-18）
+
+### 今天做了什麼
+
+#### Gemini API Key 使用者自行輸入
+- 首頁 header 加「🔑 AI Key」按鈕，點開 modal 輸入/清除
+- `useGeminiKey` composable，localStorage 儲存，`useState` 跨頁共用
+- 所有 API 呼叫從 body 帶 `apiKey`，server 優先用 body key，fallback `.env`
+
+#### 訂單管理中心（確認信解析）
+- `Booking` interface 加進 store，`trip.bookings[]` 永久儲存
+- `server/api/parse-confirmation.post.ts`：支援純文字貼上 + PDF 上傳（`pdf-parse` v2）
+- Gemini prompt 支援：hotel / flight / ticket / car_rental / train
+- 資訊 Tab 重構為「我的訂單」常駐列表 + 收合式新增面板
+- 解析後顯示預覽卡片，逐筆「儲存」或「全部儲存」存入 `trip.bookings`
+- 訂單卡片常駐顯示，右上 × 刪除
+
+---
+
 ## 今日進度（2026-06-15）
 
 ### 今天做了什麼
@@ -49,13 +118,7 @@
 
 下一個要做的功能（優先順序）：
 
-1. **確認信解析**（`CLAUDE.md` 勾項）
-   - 在資訊 Tab 裡加入「貼上確認信」區塊
-   - 使用者貼原文 → 打 Gemini API → 解析出航班號、時間、飯店名稱等 → 進備用 planner
-   - API route：`server/api/parse-confirmation.post.js`
-   - Prompt 要求嚴格 JSON 輸出
-
-2. **準備清單自動生成**
+1. **準備清單自動生成**
    - 資訊 Tab 裡的「準備清單」區塊補上實作
    - 根據目的地 + 天數 + 季節 → Gemini 生成
    - 分類：證件、藥品、衣物、換匯、其他

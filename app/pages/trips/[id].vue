@@ -1,24 +1,24 @@
 <template>
   <div v-if="trip">
-    <!-- 標題列 -->
-    <div class="flex items-center gap-3 mb-1">
-      <NuxtLink to="/" class="text-slate-400 hover:text-slate-600 text-sm">← 返回</NuxtLink>
-    </div>
-    <div class="flex items-start justify-between mb-5">
-      <div>
-        <h1 class="text-2xl font-black text-slate-800">{{ trip.destination }}</h1>
-        <p class="text-sm text-slate-400 mt-1">
-          {{ formatDate(trip.startDate) }} – {{ formatDate(trip.endDate) }}・{{ trip.days }} 天
-        </p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span v-if="trip.budget" class="text-xs text-slate-500 bg-stone-100 px-3 py-1.5 rounded-full">
-          NT$ {{ Number(trip.budget).toLocaleString() }}
-        </span>
+    <div class="mb-6">
+      <div class="flex items-baseline gap-2">
+        <h1 class="text-4xl font-black text-stone-900 leading-tight tracking-tight">{{ trip.destination }}</h1>
         <button
           @click="openEditModal"
-          class="text-xs text-slate-400 hover:text-slate-600 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-full transition-colors"
-        >編輯</button>
+          class="text-stone-300 hover:text-stone-500 transition-colors flex-shrink-0"
+          aria-label="編輯旅程"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="flex items-center gap-3 mt-2">
+        <p class="text-sm text-stone-500">{{ formatDate(trip.startDate) }} – {{ formatDate(trip.endDate) }}</p>
+        <span class="w-1 h-1 rounded-full bg-stone-300"></span>
+        <span class="text-sm font-semibold text-amber-600">{{ trip.days }} 天</span>
+        <span v-if="trip.budget" class="text-sm text-stone-400">・NT$ {{ Number(trip.budget).toLocaleString() }}</span>
       </div>
     </div>
 
@@ -40,24 +40,12 @@
           />
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1.5">出發日期</label>
-            <input
-              v-model="editForm.startDate"
-              type="date"
-              class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1.5">回程日期</label>
-            <input
-              v-model="editForm.endDate"
-              type="date"
-              class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all"
-            />
-          </div>
-        </div>
+        <DateRangePicker
+          :start-date="editForm.startDate"
+          :end-date="editForm.endDate"
+          @update:start-date="editForm.startDate = $event"
+          @update:end-date="editForm.endDate = $event"
+        />
 
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">
@@ -110,7 +98,7 @@
         <!-- 垂直 Tab 導覽 -->
         <div class="bg-white rounded-2xl border border-stone-200 p-2">
           <button
-            v-for="tab in tabs"
+            v-for="tab in desktopTabs"
             :key="tab.key"
             @click="activeTab = tab.key"
             class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
@@ -130,27 +118,32 @@
             >{{ standbyItems.length }}</span>
           </div>
           <div v-if="standbyItems.length === 0" class="text-center py-4 text-slate-300 text-xs">空的</div>
-          <div
-            v-for="item in standbyItems"
-            :key="item.id"
-            class="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-stone-50 group transition-colors"
+          <VueDraggable
+            v-model="standbyDragList"
+            :group="{ name: 'standby', pull: 'clone', put: false }"
+            :animation="150"
+            :sort="false"
+            item-key="id"
           >
-            <span class="text-sm flex-shrink-0">{{ categoryEmoji(item.category) }}</span>
-            <span class="text-xs text-slate-700 font-medium truncate flex-1">{{ item.name }}</span>
-            <button
-              @click="moveToTodayFromDrawer(item.id)"
-              class="text-xs text-amber-600 hover:text-amber-700 font-semibold opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 whitespace-nowrap"
-            >排入</button>
-            <button
-              @click="tripsStore.removeFromStandby(trip.id, item.id)"
-              class="text-slate-300 hover:text-red-400 text-base leading-none opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-0.5"
-            >×</button>
-          </div>
+            <div
+              v-for="item in standbyDragList"
+              :key="item.id"
+              class="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-stone-50 group transition-colors cursor-grab active:cursor-grabbing"
+            >
+              <span class="text-slate-300 text-xs select-none">⠿</span>
+              <span class="text-sm flex-shrink-0">{{ categoryEmoji(item.category) }}</span>
+              <span class="text-xs text-slate-700 font-medium truncate flex-1">{{ item.name }}</span>
+              <button
+                @click.stop="tripsStore.removeFromStandby(trip!.id, item.id)"
+                class="text-slate-300 hover:text-red-400 text-base leading-none opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+              >×</button>
+            </div>
+          </VueDraggable>
         </div>
       </div>
 
       <!-- 右側內容 -->
-      <div>
+      <div class="min-w-0">
 
     <!-- 行程 Tab -->
     <div v-if="activeTab === 'itinerary'" class="pb-24 lg:pb-6">
@@ -166,12 +159,18 @@
           @click="activeDay = index"
           class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all text-sm"
           :class="activeDay === index
-            ? 'bg-slate-900 border-slate-900 text-white'
-            : 'bg-white border-stone-200 text-slate-500 hover:border-slate-400'"
+            ? 'bg-amber-400 border-amber-400 text-stone-900 font-bold shadow-sm'
+            : 'bg-white border-stone-200 text-stone-400 hover:border-amber-300 hover:text-stone-600'"
         >
           <span class="font-bold">Day {{ index + 1 }}</span>
           <span class="text-xs opacity-70">{{ day.label }}</span>
         </button>
+      </div>
+
+      <!-- Day 標頭 -->
+      <div v-if="dayList[activeDay]" class="flex items-baseline gap-2 mb-3">
+        <span class="text-base font-bold text-stone-900">Day {{ activeDay + 1 }}</span>
+        <span class="text-sm text-stone-400">{{ dayList[activeDay]!.fullLabel }}</span>
       </div>
 
       <!-- 當天行程 -->
@@ -179,53 +178,77 @@
         <div
           v-for="(entry, idx) in currentDayEntries"
           :key="entry.id"
-          class="bg-white rounded-xl border border-stone-200 px-3 py-3 flex items-center gap-2 group"
+          class="bg-white rounded-md shadow-sm overflow-hidden transition-shadow hover:shadow-md"
+          :class="editingEntryId === entry.id ? 'ring-1 ring-amber-400' : ''"
         >
-          <!-- ↑↓ 排序 -->
-          <div class="flex flex-col gap-0.5 flex-shrink-0">
-            <button
-              @click="reorderEntry(entry.id, 'up')"
-              :disabled="idx === 0"
-              class="text-slate-300 hover:text-slate-600 disabled:opacity-20 text-xs leading-none px-0.5 transition-colors"
-            >▲</button>
-            <button
-              @click="reorderEntry(entry.id, 'down')"
-              :disabled="idx === currentDayEntries.length - 1"
-              class="text-slate-300 hover:text-slate-600 disabled:opacity-20 text-xs leading-none px-0.5 transition-colors"
-            >▼</button>
-          </div>
-          <!-- 內容 -->
-          <div class="text-base flex-shrink-0">{{ categoryEmoji(entry.category) }}</div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-400 font-mono">{{ entry.time || '--:--' }}</span>
-              <span class="font-semibold text-slate-800 text-sm truncate">{{ entry.name }}</span>
+          <!-- 顯示列 -->
+          <div class="flex">
+            <!-- 左色條（按類別） -->
+            <div class="w-1 flex-shrink-0" :class="categoryColor(entry.category)"></div>
+            <div class="flex-1 px-3 py-3 cursor-pointer" @click="openInlineEdit(entry)">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <span class="text-xs font-mono font-semibold text-amber-600">{{ entry.time || '--:--' }}</span>
+                    <span class="text-xs text-stone-300">·</span>
+                    <span class="text-xs text-stone-400">{{ categoryLabel(entry.category) }}</span>
+                  </div>
+                  <p class="font-bold text-stone-900 text-base leading-snug">{{ entry.name }}</p>
+                  <p v-if="entry.note" class="text-sm text-stone-400 mt-0.5">{{ entry.note }}</p>
+                </div>
+                <button
+                  @click.stop="removeEntry(entry.id)"
+                  class="text-stone-200 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0 mt-0.5"
+                >×</button>
+              </div>
             </div>
-            <p v-if="entry.note" class="text-xs text-slate-400 mt-0.5 truncate">{{ entry.note }}</p>
           </div>
-          <!-- 移至 + 刪除 -->
-          <div class="flex items-center gap-1 flex-shrink-0">
-            <select
-              class="text-xs border border-stone-200 rounded-lg px-1.5 py-1 outline-none bg-white text-slate-500 focus:border-amber-400"
-              @change="(e: Event) => { const s = e.target as HTMLSelectElement; moveEntryToDay(entry.id, s.value); s.value = '' }"
-            >
-              <option value="" disabled selected>移至…</option>
-              <option
-                v-for="(day, i) in dayList"
-                :key="i"
-                :value="day.date"
-                :disabled="day.date === dayList[activeDay]?.date"
-              >Day {{ i + 1 }} {{ day.label }}</option>
-            </select>
-            <button
-              @click="removeEntry(entry.id)"
-              class="text-slate-200 hover:text-red-400 transition-colors text-lg leading-none ml-0.5"
-            >×</button>
+
+          <!-- Inline 編輯區 -->
+          <div v-if="editingEntryId === entry.id" class="border-t border-stone-100 px-3 py-3 space-y-2 bg-stone-50">
+            <div class="grid grid-cols-2 gap-2">
+              <TimePicker v-model="inlineEdit.time" />
+              <select v-model="inlineEdit.category" class="border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 w-full bg-white">
+                <option value="attraction">🏛 景點</option>
+                <option value="food">🍜 美食</option>
+                <option value="transport">🚌 交通</option>
+                <option value="hotel">🏨 住宿</option>
+                <option value="ticket">🎟 票券</option>
+                <option value="other">📌 其他</option>
+              </select>
+            </div>
+            <input v-model="inlineEdit.name" placeholder="活動名稱" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 bg-white" />
+            <input v-model="inlineEdit.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400 bg-white" />
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex gap-1.5">
+                <button
+                  @click="reorderEntry(entry.id, 'up')"
+                  :disabled="idx === 0"
+                  class="text-xs border border-stone-200 rounded px-2 py-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 bg-white"
+                >↑</button>
+                <button
+                  @click="reorderEntry(entry.id, 'down')"
+                  :disabled="idx === currentDayEntries.length - 1"
+                  class="text-xs border border-stone-200 rounded px-2 py-1 text-stone-400 hover:text-stone-600 disabled:opacity-30 bg-white"
+                >↓</button>
+                <select
+                  class="text-xs border border-stone-200 rounded px-2 py-1 outline-none bg-white text-stone-500 focus:border-amber-400"
+                  @change="(e: Event) => { const s = e.target as HTMLSelectElement; moveEntryToDay(entry.id, s.value); s.value = '' }"
+                >
+                  <option value="" disabled selected>移至…</option>
+                  <option v-for="(day, i) in dayList" :key="i" :value="day.date" :disabled="day.date === dayList[activeDay]?.date">Day {{ i + 1 }}</option>
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <button @click="editingEntryId = null" class="px-3 py-1.5 text-stone-400 text-sm transition-colors">取消</button>
+                <button @click="saveInlineEdit(entry.id)" class="bg-amber-400 hover:bg-amber-500 text-stone-900 px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">儲存</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div v-if="currentDayEntries.length === 0" class="text-center py-8 text-slate-300">
-          <p class="text-3xl mb-2">📋</p>
+        <div v-if="currentDayEntries.length === 0" class="text-center py-10 text-stone-300">
+          <p class="text-3xl mb-2">✈️</p>
           <p class="text-sm">這天還沒有行程</p>
         </div>
       </div>
@@ -233,11 +256,7 @@
       <!-- 新增行程 -->
       <div v-if="showAddForm" class="bg-white rounded-xl border border-amber-200 p-4 mb-3" ref="addFormEl">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <input
-            v-model="newEntry.time"
-            type="time"
-            class="w-full border border-stone-200 rounded-lg px-3 py-3 text-sm outline-none focus:border-amber-400"
-          />
+          <TimePicker v-model="newEntry.time" />
           <select
             v-model="newEntry.category"
             class="w-full border border-stone-200 rounded-lg px-3 py-3 text-sm outline-none focus:border-amber-400"
@@ -345,101 +364,135 @@
       </div><!-- /手機視圖 -->
 
       <!-- 桌機橫向視圖 -->
-      <div class="hidden lg:flex gap-3 overflow-x-auto pb-4">
+      <div class="hidden lg:block relative">
+        <div class="flex gap-4 overflow-x-auto pb-1 scrollbar-hide">
         <div
           v-for="(col, colIdx) in columns"
           :key="col.date"
-          class="flex-shrink-0 w-52 flex flex-col rounded-2xl border border-stone-200 overflow-hidden bg-white"
+          class="flex-shrink-0 w-72 flex flex-col rounded-xl border border-stone-200 overflow-hidden bg-white shadow-sm"
         >
-          <div class="bg-slate-900 px-3 py-2.5 flex-shrink-0">
-            <p class="text-white text-xs font-bold">Day {{ getDayIndex(col.date) + 1 }}</p>
-            <p class="text-slate-400 text-xs mt-0.5">{{ formatFullDate(col.date) }}</p>
+          <!-- 欄標題 -->
+          <div class="px-4 pt-4 pb-3 flex-shrink-0 border-b border-stone-100">
+            <p class="text-stone-800 font-bold text-sm leading-none">Day {{ getDayIndex(col.date) + 1 }}</p>
+            <p class="text-stone-400 text-xs mt-1.5">{{ formatFullDate(col.date) }}</p>
           </div>
           <VueDraggable
             v-model="columns[colIdx]!.entries"
-            group="itinerary"
+            :group="{ name: 'itinerary', pull: true, put: true }"
             :animation="150"
             handle=".drag-handle"
             @end="onDragEnd"
-            class="flex-1 p-2 space-y-1.5 min-h-[80px]"
+            @add="(e) => onColumnAdd(e, colIdx)"
+            class="flex-1 p-3 space-y-2 min-h-[480px]"
           >
             <div
               v-for="entry in columns[colIdx]!.entries"
               :key="entry.id"
-              class="bg-stone-50 rounded-xl px-2.5 py-2 flex items-center gap-1.5"
+              class="bg-stone-50 rounded-lg overflow-hidden flex hover:bg-stone-100 transition-colors group cursor-pointer"
+              @click="openDesktopEdit(entry, col.date)"
             >
-              <span class="drag-handle cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 text-xs select-none">⠿</span>
-              <span class="text-sm flex-shrink-0">{{ categoryEmoji(entry.category) }}</span>
-              <div class="flex-1 min-w-0">
-                <span class="text-xs text-slate-400 font-mono block leading-none mb-0.5">{{ entry.time || '--:--' }}</span>
-                <p class="text-xs text-slate-700 font-semibold truncate">{{ entry.name }}</p>
+              <div class="w-[3px] flex-shrink-0 self-stretch" :class="categoryColor(entry.category)"></div>
+              <div class="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
+                <span class="drag-handle cursor-grab active:cursor-grabbing text-stone-300 group-hover:text-stone-500 text-xs select-none transition-colors" @click.stop>⠿</span>
+                <div class="flex-1 min-w-0">
+                  <span v-if="entry.time" class="text-xs text-amber-500 font-mono font-semibold block leading-none mb-1">{{ entry.time }}</span>
+                  <p class="text-sm text-stone-700 font-semibold truncate leading-snug">{{ entry.name }}</p>
+                </div>
+                <button @click.stop="removeEntry(entry.id)" class="text-stone-300 hover:text-red-400 text-base leading-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
               </div>
-              <button @click="removeEntry(entry.id)" class="text-slate-200 hover:text-red-400 text-base leading-none flex-shrink-0">×</button>
             </div>
           </VueDraggable>
-          <div class="border-t border-stone-100 p-2 flex-shrink-0">
+          <div class="px-3 pb-3 flex-shrink-0">
             <button
               @click="openAddFormForDay(col.date)"
-              class="w-full text-xs text-slate-400 hover:text-amber-600 py-1.5 border border-dashed border-stone-200 hover:border-amber-300 rounded-xl transition-colors"
+              class="w-full text-xs text-stone-400 hover:text-amber-600 py-2 border border-dashed border-stone-200 hover:border-amber-300 rounded-lg transition-colors"
             >+ 新增</button>
           </div>
         </div>
+        </div>
+        <!-- 右側漸層提示 -->
+        <div class="absolute top-0 right-0 h-full w-16 bg-gradient-to-l from-stone-50 to-transparent pointer-events-none"></div>
       </div>
 
-      <!-- AI 推薦（桌機） -->
+      <!-- AI 推薦觸發（桌機） -->
       <div class="hidden lg:flex items-center justify-end mt-3">
         <button
           @click="showAiPanel = !showAiPanel"
-          class="text-xs border border-stone-200 hover:border-slate-400 text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg transition-colors"
-        >✨ AI 推薦</button>
+          class="text-xs border border-stone-200 hover:border-amber-400 text-stone-500 hover:text-amber-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+        >
+          <span>✨</span><span>AI 推薦</span>
+        </button>
       </div>
-      <div v-if="showAiPanel" class="hidden lg:block mt-3 bg-slate-900 rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="text-white text-sm font-bold">AI 景點推薦</span>
-            <button @click="showAiPanel = false" class="text-slate-500 hover:text-slate-300 text-xs">✕</button>
-          </div>
-          <div class="flex gap-2">
-            <button
-              v-for="cat in aiCategories"
-              :key="cat.key"
-              @click="aiCategory = cat.key"
-              class="text-xs px-2 py-1 rounded-full transition-all"
-              :class="aiCategory === cat.key ? 'bg-amber-400 text-slate-900 font-bold' : 'text-slate-400 hover:text-white'"
-            >{{ cat.label }}</button>
-          </div>
-        </div>
-        <div v-if="aiLoading" class="text-center py-6 text-slate-400 text-sm">正在推薦中...</div>
-        <div v-else-if="currentBatch.length === 0" class="text-center py-4">
-          <button
-            @click="fetchRecommendations"
-            class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-5 py-2 rounded-xl text-sm font-bold transition-colors"
-          >開始推薦</button>
-        </div>
-        <div v-else class="grid grid-cols-2 xl:grid-cols-3 gap-2">
-          <div
-            v-for="item in currentBatch"
-            :key="item.id"
-            class="bg-slate-800 rounded-xl p-3 flex items-start justify-between gap-3"
-          >
-            <div class="flex-1 min-w-0">
-              <p class="text-white text-sm font-semibold">{{ item.name }}</p>
-              <p class="text-slate-400 text-xs mt-0.5 line-clamp-2">{{ item.description }}</p>
-              <p class="text-slate-500 text-xs mt-1">⏱ 約 {{ item.duration }} 小時</p>
+
+      <!-- AI 推薦側邊抽屜 -->
+      <Teleport to="body">
+        <Transition name="drawer">
+          <div v-if="showAiPanel" class="fixed inset-0 z-50 flex justify-end" @click.self="showAiPanel = false">
+            <!-- 半透明遮罩 -->
+            <div class="absolute inset-0 bg-black/20" @click="showAiPanel = false"></div>
+            <!-- 抽屜本體 -->
+            <div class="relative w-96 h-full bg-white shadow-2xl flex flex-col overflow-hidden">
+              <!-- 抽屜 Header -->
+              <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between flex-shrink-0">
+                <div>
+                  <p class="font-bold text-stone-900 text-base">AI 景點推薦</p>
+                  <p class="text-xs text-stone-400 mt-0.5">{{ trip?.destination }}</p>
+                </div>
+                <button @click="showAiPanel = false" class="text-stone-300 hover:text-stone-600 text-2xl leading-none transition-colors">×</button>
+              </div>
+              <!-- 類別篩選 -->
+              <div class="px-5 py-3 flex gap-2 flex-shrink-0 border-b border-stone-100">
+                <button
+                  v-for="cat in aiCategories"
+                  :key="cat.key"
+                  @click="aiCategory = cat.key"
+                  class="text-xs px-3 py-1.5 rounded-full border transition-all"
+                  :class="aiCategory === cat.key
+                    ? 'bg-stone-900 border-stone-900 text-white font-semibold'
+                    : 'border-stone-200 text-stone-500 hover:border-stone-400'"
+                >{{ cat.label }}</button>
+              </div>
+              <!-- 內容 -->
+              <div class="flex-1 overflow-y-auto px-5 py-4">
+                <div v-if="aiLoading" class="flex flex-col items-center justify-center h-40 gap-3">
+                  <div class="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                  <p class="text-sm text-stone-400">正在推薦中…</p>
+                </div>
+                <div v-else-if="currentBatch.length === 0" class="flex flex-col items-center justify-center h-40 gap-3">
+                  <p class="text-stone-400 text-sm">點擊開始獲取推薦</p>
+                  <button
+                    @click="fetchRecommendations"
+                    class="bg-amber-400 hover:bg-amber-500 text-stone-900 px-5 py-2 rounded-xl text-sm font-bold transition-colors"
+                  >開始推薦</button>
+                </div>
+                <div v-else class="space-y-3">
+                  <div
+                    v-for="item in currentBatch"
+                    :key="item.id"
+                    class="border border-stone-100 rounded-xl p-4 hover:border-stone-200 hover:shadow-sm transition-all"
+                  >
+                    <div class="flex items-start justify-between gap-3 mb-2">
+                      <p class="font-semibold text-stone-800 text-sm leading-snug">{{ item.name }}</p>
+                      <button
+                        @click="addFromAi(item)"
+                        :disabled="addedIds.includes(item.id)"
+                        class="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                        :class="addedIds.includes(item.id) ? 'bg-stone-100 text-stone-400 cursor-default' : 'bg-amber-400 hover:bg-amber-500 text-stone-900'"
+                      >{{ addedIds.includes(item.id) ? '✓ 已加入' : '加入備用' }}</button>
+                    </div>
+                    <p class="text-xs text-stone-400 leading-relaxed">{{ item.description }}</p>
+                    <p class="text-xs text-stone-300 mt-2">⏱ 約 {{ item.duration }} 小時</p>
+                  </div>
+                  <div class="flex justify-between items-center pt-1">
+                    <button @click="nextBatch" class="text-sm text-stone-400 hover:text-stone-700 transition-colors">換一批 →</button>
+                    <span class="text-xs text-stone-300">{{ batchIndex * 5 + 1 }}–{{ Math.min((batchIndex + 1) * 5, allRecommendations.length) }} / {{ allRecommendations.length }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <button
-              @click="addFromAi(item)"
-              :disabled="addedIds.includes(item.id)"
-              class="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-              :class="addedIds.includes(item.id) ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
-            >{{ addedIds.includes(item.id) ? '✓ 已加入' : '加入備用' }}</button>
           </div>
-          <div class="col-span-full flex justify-between pt-1">
-            <button @click="nextBatch" class="text-slate-400 hover:text-white text-xs transition-colors">換一批 →</button>
-            <span class="text-slate-600 text-xs">{{ batchIndex * 5 + 1 }}–{{ Math.min((batchIndex + 1) * 5, allRecommendations.length) }} / {{ allRecommendations.length }}</span>
-          </div>
-        </div>
-      </div>
+        </Transition>
+      </Teleport>
 
     </div>
 
@@ -498,10 +551,159 @@
 
     <!-- 資訊 Tab -->
     <div v-else-if="activeTab === 'info'" class="pb-24 lg:pb-6 space-y-6">
+
+      <!-- 訂單管理中心 -->
       <div>
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">訂單資訊</p>
-        <p class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">即將實作：機票、飯店、接送</p>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">我的訂單</p>
+          <button
+            @click="showAddBooking = !showAddBooking"
+            class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
+            :class="showAddBooking ? 'bg-slate-100 text-slate-500' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          >{{ showAddBooking ? '收起' : '+ 新增' }}</button>
+        </div>
+
+        <!-- 新增訂單面板 -->
+        <div v-if="showAddBooking" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-3 mb-3">
+          <div class="flex gap-2">
+            <button
+              @click="confirmMode = 'text'"
+              class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+              :class="confirmMode === 'text' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+            >貼上文字</button>
+            <button
+              @click="confirmMode = 'pdf'"
+              class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+              :class="confirmMode === 'pdf' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+            >上傳 PDF</button>
+          </div>
+
+          <textarea
+            v-if="confirmMode === 'text'"
+            v-model="confirmText"
+            placeholder="把確認信的文字複製貼上來..."
+            rows="5"
+            class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 resize-none"
+          />
+
+          <div v-else>
+            <label
+              class="flex flex-col items-center gap-2 py-7 border-2 border-dashed border-stone-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors"
+              :class="confirmFile ? 'border-emerald-300 bg-emerald-50' : ''"
+            >
+              <span class="text-2xl">{{ confirmFile ? '📄' : '📎' }}</span>
+              <span class="text-sm text-slate-500">{{ confirmFile ? confirmFile.name : '點擊選擇 PDF 檔案' }}</span>
+              <input type="file" accept=".pdf" class="hidden" @change="onFileChange" />
+            </label>
+          </div>
+
+          <button
+            @click="parseConfirmation"
+            :disabled="confirmLoading || (confirmMode === 'text' ? !confirmText.trim() : !confirmFile)"
+            class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
+            :class="confirmLoading || (confirmMode === 'text' ? !confirmText.trim() : !confirmFile)
+              ? 'bg-stone-100 text-slate-400 cursor-not-allowed'
+              : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          >{{ confirmLoading ? '解析中...' : 'AI 解析' }}</button>
+
+          <div v-if="confirmError" class="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2">{{ confirmError }}</div>
+
+          <!-- 解析結果 → 確認後存入 -->
+          <div v-if="parsedBookings.length > 0" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">解析結果</p>
+              <button @click="saveAllBookings" class="text-xs font-bold text-amber-600 hover:text-amber-700">全部儲存</button>
+            </div>
+            <div
+              v-for="(b, i) in parsedBookings"
+              :key="i"
+              class="border rounded-xl p-3 space-y-1 transition-colors"
+              :class="b._saved ? 'border-emerald-200 bg-emerald-50' : 'border-stone-100'"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-base leading-none">{{ bookingTypeIcon(b.type) }}</span>
+                  <span class="font-medium text-slate-800 text-sm">{{ b.name }}</span>
+                </div>
+                <span v-if="b._saved" class="text-xs text-emerald-500 font-medium">已儲存</span>
+                <button
+                  v-else
+                  @click="saveBooking(b, i)"
+                  class="text-xs bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded-lg font-bold transition-colors"
+                >儲存</button>
+              </div>
+              <p v-if="b.startDate" class="text-xs text-slate-400">
+                {{ b.startDate }}{{ b.startTime ? ' ' + b.startTime : '' }}
+                <template v-if="b.endDate && b.endDate !== b.startDate"> → {{ b.endDate }}{{ b.endTime ? ' ' + b.endTime : '' }}</template>
+              </p>
+              <p v-if="b.location" class="text-xs text-slate-400 truncate">📍 {{ b.location }}</p>
+              <p v-if="b.confirmationNumber" class="text-xs text-slate-300">訂單號 {{ b.confirmationNumber }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Tags -->
+        <div v-if="tripBookings.length > 0" class="flex gap-2 flex-wrap mb-2">
+          <button
+            v-for="f in bookingFilters"
+            :key="f.value"
+            @click="activeBookingFilter = f.value"
+            class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+            :class="activeBookingFilter === f.value
+              ? 'bg-amber-400 text-slate-900'
+              : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+          >{{ f.label }}</button>
+        </div>
+
+        <!-- 訂單列表 -->
+        <div v-if="tripBookings.length === 0 && !showAddBooking" class="text-slate-300 text-sm text-center py-10 bg-white rounded-2xl border border-stone-100">
+          還沒有訂單，點「+ 新增」貼上確認信
+        </div>
+
+        <div v-else-if="filteredBookings.length > 0" class="space-y-2">
+          <div
+            v-for="b in filteredBookings"
+            :key="b.id"
+            class="bg-white rounded-2xl border border-stone-100 p-4 space-y-2"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xl leading-none flex-shrink-0">{{ bookingTypeIcon(b.type) }}</span>
+                <div class="min-w-0">
+                  <span class="font-semibold text-slate-800 text-sm truncate block">{{ b.name }}</span>
+                  <span class="text-xs text-slate-400">{{ bookingTypeLabel(b.type) }}</span>
+                </div>
+              </div>
+              <button @click="tripsStore.removeBooking(trip!.id, b.id)" class="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 text-lg leading-none">×</button>
+            </div>
+            <div class="space-y-1 pl-7">
+              <p v-if="b.startDate" class="text-xs text-slate-500">
+                {{ b.startDate }}{{ b.startTime ? ' ' + b.startTime : '' }}
+                <template v-if="b.endDate && b.endDate !== b.startDate"> → {{ b.endDate }}{{ b.endTime ? ' ' + b.endTime : '' }}</template>
+              </p>
+              <p v-if="b.location" class="text-xs text-slate-400">📍 {{ b.location }}</p>
+              <p v-if="b.note" class="text-xs text-slate-400">{{ b.note }}</p>
+              <div class="flex items-center gap-3 pt-0.5 flex-wrap">
+                <span v-if="b.confirmationNumber" class="text-xs text-slate-300">訂單號 {{ b.confirmationNumber }}</span>
+                <span v-if="b.price" class="text-xs font-medium text-slate-500">{{ b.price }}</span>
+                <a
+                  v-if="b.location || b.name"
+                  :href="mapsUrl(b)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-xs text-amber-500 hover:text-amber-600 font-medium transition-colors"
+                >地圖 ↗</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="tripBookings.length > 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+          這個類別還沒有訂單
+        </div>
       </div>
+
+      <!-- 準備清單 -->
       <div>
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">準備清單</p>
         <p class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">即將實作：出發前 checklist</p>
@@ -518,11 +720,13 @@
     >
       <div class="bg-white rounded-2xl w-full max-w-sm p-5 space-y-3">
         <div class="flex items-center justify-between">
-          <h3 class="font-bold text-slate-800">新增行程・Day {{ getDayIndex(addFormDate) + 1 }}</h3>
+          <h3 class="font-bold text-slate-800">
+            {{ editingDesktopEntryId ? '編輯行程' : '新增行程' }}・Day {{ getDayIndex(addFormDate) + 1 }}
+          </h3>
           <button @click="showDesktopAddModal = false" class="text-slate-300 hover:text-slate-500 text-xl leading-none">×</button>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <input v-model="newEntry.time" type="time" class="border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 w-full" />
+          <TimePicker v-model="newEntry.time" />
           <select v-model="newEntry.category" class="border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 w-full">
             <option value="attraction">🏛 景點</option>
             <option value="food">🍜 美食</option>
@@ -535,7 +739,10 @@
         <input v-model="newEntry.name" placeholder="活動名稱" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
         <input v-model="newEntry.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
         <div class="flex gap-2 pt-1">
-          <button @click="addEntryFromModal" class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors">新增</button>
+          <button
+            @click="editingDesktopEntryId ? saveDesktopEdit() : addEntryFromModal()"
+            class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors"
+          >{{ editingDesktopEntryId ? '儲存' : '新增' }}</button>
           <button @click="showDesktopAddModal = false" class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors">取消</button>
         </div>
       </div>
@@ -567,22 +774,33 @@
             <div
               v-for="item in standbyItems"
               :key="item.id"
-              class="flex items-start gap-3 py-3 px-3.5 bg-stone-50 rounded-xl"
+              class="bg-stone-50 rounded-xl overflow-hidden"
             >
-              <span class="text-lg mt-0.5 flex-shrink-0">{{ categoryEmoji(item.category) }}</span>
-              <div class="flex-1 min-w-0">
-                <p class="font-semibold text-slate-800 text-sm">{{ item.name }}</p>
-                <p v-if="item.duration" class="text-xs text-slate-400 mt-0.5">⏱ 約 {{ item.duration }} 小時</p>
+              <div class="flex items-start gap-3 py-3 px-3.5">
+                <span class="text-lg mt-0.5 flex-shrink-0">{{ categoryEmoji(item.category) }}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-slate-800 text-sm">{{ item.name }}</p>
+                  <p v-if="item.duration" class="text-xs text-slate-400 mt-0.5">⏱ 約 {{ item.duration }} 小時</p>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    @click="expandingStandbyId = expandingStandbyId === item.id ? null : item.id"
+                    class="text-xs bg-slate-900 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+                  >排入</button>
+                  <button
+                    @click="tripsStore.removeFromStandby(trip!.id, item.id)"
+                    class="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none"
+                  >×</button>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 flex-shrink-0">
+              <!-- Day 選擇器 -->
+              <div v-if="expandingStandbyId === item.id" class="px-3.5 pb-3 flex flex-wrap gap-2">
                 <button
-                  @click="moveToTodayFromDrawer(item.id)"
-                  class="text-xs bg-slate-900 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
-                >排入今日</button>
-                <button
-                  @click="tripsStore.removeFromStandby(trip.id, item.id)"
-                  class="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none"
-                >×</button>
+                  v-for="(day, i) in dayList"
+                  :key="day.date"
+                  @click="moveToDay(item.id, day.date)"
+                  class="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors bg-white border border-stone-200 hover:border-amber-400 hover:text-amber-600 text-slate-600"
+                >Day {{ i + 1 }} {{ day.label }}</button>
               </div>
             </div>
           </div>
@@ -624,8 +842,12 @@ interface AiRecommendation {
 
 const route = useRoute()
 const tripsStore = useTripsStore()
+const { geminiKey, loadKey } = useGeminiKey()
 
-onMounted(() => tripsStore.load())
+onMounted(() => {
+  tripsStore.load()
+  loadKey()
+})
 const trip = computed(() => tripsStore.getTrip(route.params.id as string))
 
 const tabs = [
@@ -633,6 +855,7 @@ const tabs = [
   { key: 'overview', label: '總覽' },
   { key: 'info', label: '資訊' }
 ]
+const desktopTabs = tabs.filter(t => t.key !== 'overview')
 const activeTab = ref('itinerary')
 const activeDay = ref(0)
 const showAddForm = ref(false)
@@ -684,10 +907,18 @@ const saveEdit = () => {
 const dayList = computed(() => {
   if (!trip.value) return []
   const start = new Date(trip.value.startDate)
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   return Array.from({ length: trip.value.days }, (_, i) => {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
-    return { date: d.toISOString().substring(0, 10), label: `${d.getMonth() + 1}/${d.getDate()}` }
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    const wd = weekdays[d.getDay()]
+    return {
+      date: d.toISOString().substring(0, 10),
+      label: `${m}/${day}`,
+      fullLabel: `${m}月${day}日 · 週${wd}`
+    }
   })
 })
 
@@ -726,6 +957,27 @@ const removeEntry = (entryId: string) => {
   tripsStore.updateTrip(trip.value.id, { itinerary })
 }
 
+const editingEntryId = ref<string | null>(null)
+const inlineEdit = reactive({ time: '', category: 'attraction' as TripEntry['category'], name: '', note: '' })
+
+const openInlineEdit = (entry: TripEntry) => {
+  if (editingEntryId.value === entry.id) {
+    editingEntryId.value = null
+    return
+  }
+  Object.assign(inlineEdit, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '' })
+  editingEntryId.value = entry.id
+}
+
+const saveInlineEdit = (entryId: string) => {
+  if (!trip.value || !inlineEdit.name.trim()) return
+  const itinerary = trip.value.itinerary.map(e =>
+    e.id === entryId ? { ...e, ...inlineEdit } : e
+  )
+  tripsStore.updateTrip(trip.value.id, { itinerary })
+  editingEntryId.value = null
+}
+
 const reorderEntry = (entryId: string, direction: 'up' | 'down') => {
   const day = dayList.value[activeDay.value]
   if (!day || !trip.value) return
@@ -740,6 +992,19 @@ const moveEntryToDay = (entryId: string, newDate: string) => {
 const categoryEmoji = (cat: string) => ({
   attraction: '🏛', food: '🍜', transport: '🚌', hotel: '🏨', ticket: '🎟', other: '📌'
 }[cat] || '📌')
+
+const categoryLabel = (cat: string) => ({
+  attraction: '景點', food: '美食', transport: '交通', hotel: '住宿', ticket: '票券', other: '其他'
+}[cat] || '其他')
+
+const categoryColor = (cat: string) => ({
+  attraction: 'bg-amber-400',
+  food: 'bg-orange-400',
+  transport: 'bg-sky-400',
+  hotel: 'bg-emerald-400',
+  ticket: 'bg-violet-400',
+  other: 'bg-stone-300'
+}[cat] || 'bg-stone-300')
 
 // AI 推薦
 const aiCategories = [
@@ -769,7 +1034,7 @@ const fetchRecommendations = async () => {
   try {
     const res = await $fetch('/api/recommendations', {
       method: 'POST',
-      body: { destination: trip.value.destination, category: aiCategory.value }
+      body: { destination: trip.value.destination, category: aiCategory.value, apiKey: geminiKey.value }
     })
     allRecommendations.value = res.attractions
   } catch (e) {
@@ -789,6 +1054,138 @@ const nextBatch = () => {
 
 const standbyItems = computed(() => trip.value?.standby || [])
 
+// 桌機拖曳用（clone 模式，原清單不變）
+const standbyDragList = computed({
+  get: () => standbyItems.value,
+  set: () => {}
+})
+
+// 手機 Day 選擇展開
+const expandingStandbyId = ref<string | null>(null)
+
+const moveToDay = (itemId: string, date: string) => {
+  if (!trip.value) return
+  tripsStore.moveToDay(trip.value.id, itemId, date)
+  expandingStandbyId.value = null
+  if (standbyItems.value.length <= 1) showStandbyDrawer.value = false
+}
+
+// 訂單管理中心
+import type { Booking } from '~/stores/useTripsStore'
+
+interface ParsedBooking {
+  type: string
+  name: string
+  confirmationNumber: string | null
+  startDate: string | null
+  startTime: string | null
+  endDate: string | null
+  endTime: string | null
+  location: string | null
+  note: string | null
+  price: string | null
+  _saved?: boolean
+}
+
+const tripBookings = computed(() => trip.value?.bookings || [])
+
+const bookingFilters = [
+  { value: 'all', label: '全部' },
+  { value: 'hotel', label: '🏨 住宿' },
+  { value: 'flight', label: '✈️ 機票' },
+  { value: 'train', label: '🚄 火車' },
+  { value: 'car_rental', label: '🚗 租車' },
+  { value: 'ticket', label: '🎟 票券' },
+]
+const activeBookingFilter = ref('all')
+const filteredBookings = computed(() =>
+  activeBookingFilter.value === 'all'
+    ? tripBookings.value
+    : tripBookings.value.filter(b => b.type === activeBookingFilter.value)
+)
+
+const bookingTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    hotel: '住宿', flight: '機票', ticket: '票券', car_rental: '租車', train: '火車', other: '其他'
+  }
+  return labels[type] ?? '其他'
+}
+const showAddBooking = ref(false)
+const confirmMode = ref<'text' | 'pdf'>('text')
+const confirmText = ref('')
+const confirmFile = ref<File | null>(null)
+const confirmLoading = ref(false)
+const confirmError = ref('')
+const parsedBookings = ref<ParsedBooking[]>([])
+
+const onFileChange = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  confirmFile.value = input.files?.[0] ?? null
+}
+
+const bookingTypeIcon = (type: string) => {
+  const icons: Record<string, string> = {
+    hotel: '🏨', flight: '✈️', ticket: '🎟', car_rental: '🚗', train: '🚄'
+  }
+  return icons[type] ?? '📋'
+}
+
+const parseConfirmation = async () => {
+  if (!trip.value) return
+  confirmLoading.value = true
+  confirmError.value = ''
+  parsedBookings.value = []
+
+  try {
+    let res: { bookings: ParsedBooking[] }
+    if (confirmMode.value === 'pdf' && confirmFile.value) {
+      const form = new FormData()
+      form.append('file', confirmFile.value)
+      form.append('apiKey', geminiKey.value)
+      res = await $fetch('/api/parse-confirmation', { method: 'POST', body: form })
+    } else {
+      res = await $fetch('/api/parse-confirmation', {
+        method: 'POST',
+        body: { text: confirmText.value, apiKey: geminiKey.value }
+      })
+    }
+    parsedBookings.value = res.bookings
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string }; message?: string }
+    confirmError.value = err.data?.statusMessage || err.message || '解析失敗，請再試一次'
+  } finally {
+    confirmLoading.value = false
+  }
+}
+
+const saveBooking = (booking: ParsedBooking, index: number) => {
+  if (!trip.value) return
+  tripsStore.addBooking(trip.value.id, {
+    type: booking.type as Booking['type'],
+    name: booking.name,
+    confirmationNumber: booking.confirmationNumber,
+    startDate: booking.startDate,
+    startTime: booking.startTime,
+    endDate: booking.endDate,
+    endTime: booking.endTime,
+    location: booking.location,
+    note: booking.note,
+    price: booking.price
+  })
+  parsedBookings.value[index]!._saved = true
+}
+
+const saveAllBookings = () => {
+  parsedBookings.value.forEach((b, i) => {
+    if (!b._saved) saveBooking(b, i)
+  })
+}
+
+const mapsUrl = (b: { name: string; location: string | null }) => {
+  const q = [b.location, b.name].filter(Boolean).join(' ')
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+}
+
 const addFromAi = (item: AiRecommendation) => {
   if (!trip.value) return
   tripsStore.addToStandby(trip.value.id, {
@@ -801,10 +1198,6 @@ const addFromAi = (item: AiRecommendation) => {
   addedIds.value = [...addedIds.value, item.id]
 }
 
-const moveToDay = (itemId: string, date: string) => {
-  if (!trip.value) return
-  tripsStore.moveToDay(trip.value.id, itemId, date)
-}
 
 watch(aiCategory, () => {
   batchIndex.value = 0
@@ -863,15 +1256,48 @@ const onDragEnd = () => {
   nextTick(() => { isSyncingFromDrag = false })
 }
 
+const onColumnAdd = (event: { newIndex?: number }, colIdx: number) => {
+  const col = columns.value[colIdx]
+  if (!col || !trip.value) return
+  const idx = event.newIndex ?? col.entries.length - 1
+  const item = col.entries[idx] as TripEntry & { duration?: string | number }
+  if (!item || 'date' in item) return  // 已是 TripEntry，跳過
+
+  // 來自備用清單，轉換為 TripEntry
+  const standbyItem = item as unknown as StandbyItem
+  const tripEntry: TripEntry = {
+    id: Date.now().toString(),
+    date: col.date,
+    time: standbyItem.time || '',
+    category: (['attraction','food','transport','hotel','ticket','other'].includes(standbyItem.category)
+      ? standbyItem.category : 'other') as TripEntry['category'],
+    name: standbyItem.name,
+    note: standbyItem.note,
+    order: idx * 10
+  }
+  col.entries.splice(idx, 1, tripEntry)
+  tripsStore.removeFromStandby(trip.value.id, standbyItem.id)
+  onDragEnd()
+}
+
 const getDayIndex = (date: string) => dayList.value.findIndex(d => d.date === date)
 
 // 桌機新增 Modal
 const showDesktopAddModal = ref(false)
 const addFormDate = ref('')
+const editingDesktopEntryId = ref<string | null>(null)
 
 const openAddFormForDay = (date: string) => {
   addFormDate.value = date
+  editingDesktopEntryId.value = null
   Object.assign(newEntry, { time: '', category: 'attraction', name: '', note: '' })
+  showDesktopAddModal.value = true
+}
+
+const openDesktopEdit = (entry: TripEntry, date: string) => {
+  addFormDate.value = date
+  editingDesktopEntryId.value = entry.id
+  Object.assign(newEntry, { time: entry.time, category: entry.category, name: entry.name, note: entry.note || '' })
   showDesktopAddModal.value = true
 }
 
@@ -888,6 +1314,16 @@ const addEntryFromModal = () => {
   tripsStore.updateTrip(trip.value!.id, { itinerary })
   showDesktopAddModal.value = false
 }
+
+const saveDesktopEdit = () => {
+  if (!newEntry.name.trim() || !editingDesktopEntryId.value || !trip.value) return
+  const itinerary = trip.value.itinerary.map(e =>
+    e.id === editingDesktopEntryId.value ? { ...e, ...newEntry } : e
+  )
+  tripsStore.updateTrip(trip.value.id, { itinerary })
+  showDesktopAddModal.value = false
+  editingDesktopEntryId.value = null
+}
 </script>
 
 <style scoped>
@@ -896,4 +1332,14 @@ const addEntryFromModal = () => {
 
 .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.25s ease; }
 .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
+
+.drawer-enter-active, .drawer-leave-active { transition: opacity 0.25s ease; }
+.drawer-enter-active .relative, .drawer-leave-active .relative { transition: transform 0.25s ease; }
+.drawer-enter-from { opacity: 0; }
+.drawer-leave-to { opacity: 0; }
+.drawer-enter-from .relative { transform: translateX(100%); }
+.drawer-leave-to .relative { transform: translateX(100%); }
+
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>

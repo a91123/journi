@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
+    '@vant/nuxt',
     // '@nuxtjs/supabase', // TODO: 設定好 Supabase 帳號後開啟
   ],
   runtimeConfig: {

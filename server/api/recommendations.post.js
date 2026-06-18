@@ -1,10 +1,15 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export default defineEventHandler(async (event) => {
-  const { destination, category } = await readBody(event)
+  const { destination, category, apiKey } = await readBody(event)
   const config = useRuntimeConfig()
+  const key = apiKey || config.geminiApiKey
 
-  const genAI = new GoogleGenerativeAI(config.geminiApiKey)
+  if (!key) {
+    throw createError({ statusCode: 400, statusMessage: '請先設定 Gemini API Key' })
+  }
+
+  const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
 
   const categoryHint = category && category !== 'all'

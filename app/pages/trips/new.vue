@@ -1,9 +1,6 @@
 <template>
   <div class="max-w-lg mx-auto">
-    <div class="flex items-center gap-3 mb-6">
-      <NuxtLink to="/" class="text-slate-400 hover:text-slate-600 text-sm">← 返回</NuxtLink>
-      <h1 class="text-xl font-bold text-slate-800">新增旅程</h1>
-    </div>
+    <h1 class="text-xl font-bold text-slate-800 mb-6">新增旅程</h1>
 
     <form @submit.prevent="handleSubmit" class="bg-white rounded-2xl border border-stone-200 p-6 space-y-5">
       <div>
@@ -17,26 +14,12 @@
         />
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">出發日期</label>
-          <input
-            v-model="form.startDate"
-            type="date"
-            class="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
-            required
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">回程日期</label>
-          <input
-            v-model="form.endDate"
-            type="date"
-            class="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
-            required
-          />
-        </div>
-      </div>
+      <DateRangePicker
+        :start-date="form.startDate"
+        :end-date="form.endDate"
+        @update:start-date="form.startDate = $event"
+        @update:end-date="form.endDate = $event"
+      />
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1.5">
