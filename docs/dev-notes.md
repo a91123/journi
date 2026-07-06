@@ -1,5 +1,18 @@
 # Dev Notes
 
+## 今日進度（2026-06-24）
+
+#### PDF QR Code 自動掃描
+- 上傳 PDF → client-side 同步跑 QR 掃描（`pdfjs-dist` + `jsqr`），不影響 Gemini 解析速度（Promise.all 並行）
+- `Booking.qrCodes?: string[]` 存解碼後的文字
+- 訂單卡出現圓角 badge「QR」按鈕（active 時 amber，inactive 時 stone），點開展開重繪的 QR Code 圖
+- 解析成功後 file input 自動清空（`fileInputRef.value.value = ''`）
+
+#### 訂單卡細節優化
+- 機票（`type === 'flight'`）不顯示「地圖 ↗」，其他類型不變
+
+---
+
 ## 今日進度（2026-06-18）—— 續2
 
 #### 視覺設計（行程欄位）
@@ -41,13 +54,13 @@
 - **已完成**：卡片有 mapUrl 時顯示地圖 pin icon，點擊展開 iframe（用景點名稱 embed）+ 「在 Google Maps 開啟 ↗」外連
 - **待優化**：桌機欄位 entry 卡也加地圖 icon（目前只有手機）
 
-### 票券 QR Code 展示
-- **需求**：訂單管理中心的票券類型，若有 QR Code 可直接在 app 內顯示，方便現場掃碼
-- **方向**：
-  - Booking card 上加「掃碼」按鈕，展開 QR Code 圖片
-  - 來源：使用者上傳圖片，或從 PDF 確認信解析時嘗試提取 QR Code
-  - 技術選項：`qrcode` / `jsQR` 前端 decode；或讓使用者直接上傳 QR Code 截圖
-- **影響範圍**：`Booking` interface 加 `qrCodeUrl?: string`，Info Tab Booking 卡片
+### ~~票券 QR Code 展示~~ ✅ 已完成（2026-06-24）
+- PDF 上傳解析時，client-side 同步掃描 QR Code（`pdfjs-dist` 渲染頁面為 canvas → `jsqr` 解碼）
+- 解碼後的文字存入 `Booking.qrCodes?: string[]`，儲存訂單時一起存
+- 訂單卡有 QR Code 時出現「🔲 掃碼」按鈕，點開用 `qrcode` 重繪為圖片顯示
+- 解析成功後自動清空 file input（`fileInputRef.value.value = ''`）
+- 技術：`pdfjs-dist` v6（canvas 傳法需帶 `canvas` + `canvasContext`）、`jsqr` v1、`qrcode` v1
+- Worker URL 用 unpkg CDN：`https://unpkg.com/pdfjs-dist@{version}/build/pdf.worker.min.mjs`
 
 ---
 

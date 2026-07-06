@@ -23,6 +23,7 @@ export interface Booking {
   location: string | null
   note: string | null
   price: string | null
+  qrCodes?: string[]
   createdAt: string
 }
 

@@ -616,7 +616,7 @@
             >
               <span class="text-2xl">{{ confirmFile ? '📄' : '📎' }}</span>
               <span class="text-sm text-slate-500">{{ confirmFile ? confirmFile.name : '點擊選擇 PDF 檔案' }}</span>
-              <input type="file" accept=".pdf" class="hidden" @change="onFileChange" />
+              <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="onFileChange" />
             </label>
           </div>
 
@@ -710,13 +710,28 @@
                 <span v-if="b.confirmationNumber" class="text-xs text-slate-300">訂單號 {{ b.confirmationNumber }}</span>
                 <span v-if="b.price" class="text-xs font-medium text-slate-500">{{ b.price }}</span>
                 <a
-                  v-if="b.location || b.name"
+                  v-if="(b.location || b.name) && b.type !== 'flight'"
                   :href="mapsUrl(b)"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-xs text-amber-500 hover:text-amber-600 font-medium transition-colors"
                 >地圖 ↗</a>
+                <button
+                  v-if="b.qrCodes && b.qrCodes.length > 0"
+                  @click="toggleQr(b.id, b.qrCodes || [])"
+                  class="px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+                  :class="activeQrBookingId === b.id ? 'bg-amber-100 text-amber-600' : 'bg-stone-100 text-slate-500 hover:bg-amber-100 hover:text-amber-600'"
+                >QR</button>
               </div>
+            </div>
+            <div v-if="b.qrCodes?.length && activeQrBookingId === b.id" class="flex flex-col items-center gap-2 pt-2 mt-1 border-t border-stone-100">
+              <img
+                v-for="(url, idx) in qrImages[b.id]"
+                :key="idx"
+                :src="url"
+                alt="QR Code"
+                class="w-48 h-48"
+              />
             </div>
           </div>
         </div>
@@ -1110,6 +1125,7 @@ interface ParsedBooking {
   location: string | null
   note: string | null
   price: string | null
+  qrCodes?: string[]
   _saved?: boolean
 }
 
@@ -1143,6 +1159,9 @@ const confirmFile = ref<File | null>(null)
 const confirmLoading = ref(false)
 const confirmError = ref('')
 const parsedBookings = ref<ParsedBooking[]>([])
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const activeQrBookingId = ref<string | null>(null)
+const qrImages = ref<Record<string, string[]>>({})
 
 const onFileChange = (e: Event) => {
   const input = e.target as HTMLInputElement
@@ -1156,6 +1175,48 @@ const bookingTypeIcon = (type: string) => {
   return icons[type] ?? '📋'
 }
 
+const extractQrCodes = async (file: File): Promise<string[]> => {
+  if (!import.meta.client) return []
+  try {
+    const pdfjsLib = await import('pdfjs-dist')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+    const jsQR = (await import('jsqr')).default
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const codes: string[] = []
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const viewport = page.getViewport({ scale: 2 })
+      const canvas = document.createElement('canvas')
+      canvas.width = viewport.width
+      canvas.height = viewport.height
+      const ctx = canvas.getContext('2d')!
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const result = jsQR(imageData.data, imageData.width, imageData.height)
+      if (result && !codes.includes(result.data)) codes.push(result.data)
+    }
+    return codes
+  } catch {
+    return []
+  }
+}
+
+const toggleQr = async (bookingId: string, codes: string[]) => {
+  if (activeQrBookingId.value === bookingId) {
+    activeQrBookingId.value = null
+    return
+  }
+  activeQrBookingId.value = bookingId
+  if (!qrImages.value[bookingId]) {
+    const QRCode = (await import('qrcode')).default
+    const urls = await Promise.all(
+      codes.map(code => QRCode.toDataURL(code, { width: 200, margin: 2 }))
+    )
+    qrImages.value = { ...qrImages.value, [bookingId]: urls }
+  }
+}
+
 const parseConfirmation = async () => {
   if (!trip.value) return
   confirmLoading.value = true
@@ -1164,18 +1225,31 @@ const parseConfirmation = async () => {
 
   try {
     let res: { bookings: ParsedBooking[] }
+    let qrCodes: string[] = []
+
     if (confirmMode.value === 'pdf' && confirmFile.value) {
+      const file = confirmFile.value
       const form = new FormData()
-      form.append('file', confirmFile.value)
+      form.append('file', file)
       form.append('apiKey', geminiKey.value)
-      res = await $fetch('/api/parse-confirmation', { method: 'POST', body: form })
+      const [parseResult, extracted] = await Promise.all([
+        $fetch<{ bookings: ParsedBooking[] }>('/api/parse-confirmation', { method: 'POST', body: form }),
+        extractQrCodes(file)
+      ])
+      res = parseResult
+      qrCodes = extracted
+      confirmFile.value = null
+      if (fileInputRef.value) fileInputRef.value.value = ''
     } else {
       res = await $fetch('/api/parse-confirmation', {
         method: 'POST',
         body: { text: confirmText.value, apiKey: geminiKey.value }
       })
     }
-    parsedBookings.value = res.bookings
+    parsedBookings.value = res.bookings.map(b => ({
+      ...b,
+      qrCodes: qrCodes.length > 0 ? qrCodes : undefined
+    }))
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string }; message?: string }
     confirmError.value = err.data?.statusMessage || err.message || '解析失敗，請再試一次'
@@ -1196,7 +1270,8 @@ const saveBooking = (booking: ParsedBooking, index: number) => {
     endTime: booking.endTime,
     location: booking.location,
     note: booking.note,
-    price: booking.price
+    price: booking.price,
+    qrCodes: booking.qrCodes
   })
   parsedBookings.value[index]!._saved = true
 }
