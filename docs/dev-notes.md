@@ -1,5 +1,28 @@
 # Dev Notes
 
+## 今日進度（2026-07-06）
+
+#### AI 推薦卡「排入行程」dialog
+- 點推薦卡上「排入」開 dialog：可選「加入備用」或選 Day N（可選填時間）直接寫入 itinerary
+- 清掉手機版舊的深色 AI 推薦面板（06-18 改右側抽屜後忘記刪，會跟抽屜同時彈出重複顯示）
+
+#### 桌機版行程卡地圖 icon
+- 桌機欄位 entry 卡補上地圖 pin icon（原本只有手機版有），重用既有 `openMapId`/`toggleMap`
+
+#### 準備清單自動生成
+- 新增 `server/api/packing-list.post.ts`，依目的地/天數/出發日（推斷季節）用 Gemini 生成分類清單
+- Store 新增 `PackingItem` 型別 + `setPackingList`/`togglePackingItem` actions
+- 資訊 Tab 加「AI 生成清單」按鈕 + 可勾選 checklist（依分類分組）
+
+#### 天氣查詢
+- 新增 `server/api/weather.get.ts`：Open-Meteo geocoding 查地點座標 → forecast 查天氣（免 key）
+- 資訊 Tab 加天氣卡片橫向列表，進入資訊 Tab 時才 lazy fetch
+- 免費預報僅支援約 16 天內，超出範圍會顯示錯誤訊息
+- **踩坑**：Open-Meteo geocoding 對中文口語地名（大阪、台北）查不到，得打官方全名（大阪市、台北市）；純加 `language=zh` 只解決部分案例
+- **修法**：查詢前先用 Gemini 把目的地正規化成英文地名（如「大阪」→「Osaka」）再查，失敗才 fallback 回原字串 + zh/en/無語言三段嘗試。城市天氣顆粒度維持整個城市一個代表座標（跟主流天氣 App 一致，不做逐行程地點查詢）
+
+---
+
 ## 今日進度（2026-06-24）
 
 #### PDF QR Code 自動掃描
@@ -39,20 +62,12 @@
 
 ## 待實作功能
 
-### AI 推薦卡「排入行程」dialog
-- **需求**：點推薦卡上的「加入備用」改為可選擇直接排入某天
-- **原因**：拖曳方式在 10 天行程要拖很遠，UX 差
-- **設計方向**：
-  - 點推薦卡 → 開 dialog
-  - Dialog 顯示景點名稱 + 描述
-  - 選擇行動：「加入備用」或「排入 Day N」（列出所有天）
-  - 選 Day 後可選擇時間（選填），確認後直接寫入 itinerary
-- **影響範圍**：`[id].vue` AI 推薦 section + `useTripsStore.ts`
+### ~~AI 推薦卡「排入行程」dialog~~ ✅ 已完成（2026-07-06）
+- 點推薦卡「排入」開 dialog，可選「加入備用」或選 Day N（可選填時間）直接寫入 itinerary
 
-### 行程卡片 Google Maps 連結（已實作基礎）
-- **已完成**：`TripEntry` 加 `mapUrl?: string`，編輯表單加「📍 Google Maps 連結」欄位
-- **已完成**：卡片有 mapUrl 時顯示地圖 pin icon，點擊展開 iframe（用景點名稱 embed）+ 「在 Google Maps 開啟 ↗」外連
-- **待優化**：桌機欄位 entry 卡也加地圖 icon（目前只有手機）
+### 行程卡片 Google Maps 連結 ✅ 已完成（含桌機，2026-07-06）
+- `TripEntry` 加 `mapUrl?: string`，編輯表單加「📍 Google Maps 連結」欄位
+- 手機 + 桌機卡片都有 mapUrl 時顯示地圖 pin icon，點擊展開 iframe（用景點名稱 embed）+ 「在 Google Maps 開啟 ↗」外連
 
 ### ~~票券 QR Code 展示~~ ✅ 已完成（2026-06-24）
 - PDF 上傳解析時，client-side 同步掃描 QR Code（`pdfjs-dist` 渲染頁面為 canvas → `jsqr` 解碼）
@@ -142,16 +157,12 @@
 
 ## 明天從哪開始
 
-下一個要做的功能（優先順序）：
+準備清單、天氣查詢已完成（見 2026-07-06 進度）。下一個優先順序：
 
-1. **準備清單自動生成**
-   - 資訊 Tab 裡的「準備清單」區塊補上實作
-   - 根據目的地 + 天數 + 季節 → Gemini 生成
-   - 分類：證件、藥品、衣物、換匯、其他
-
-3. **天氣查詢**
-   - Open-Meteo API（免費，不需 key）
-   - 顯示旅遊日期的天氣預報
+1. **旅伴管理**（一個人管全家機票）
+2. **機場接送**（手動填表單）
+3. **匯率參考**
+4. **地圖檢視**（Google Maps 整體地圖，非單筆行程連結）
 
 ---
 
@@ -167,6 +178,11 @@
 - [x] 總覽 Tab（手機縱向 / 桌機橫向）
 - [x] 桌機橫向行程 + vue-draggable-plus 拖曳
 - [x] TypeScript 型別保護（store + [id].vue）
+- [x] 訂單管理中心（確認信解析 + PDF QR Code 掃描）
+- [x] AI 推薦卡「排入行程」dialog
+- [x] 桌機版行程卡地圖 icon
+- [x] 準備清單自動生成
+- [x] 天氣查詢
 
 ---
 
@@ -178,6 +194,8 @@
 - `v-else-if` 和 `<Teleport>` 的配合：Teleport 要在最後，不能插在條件渲染之間
 - `split('T')[0]` 在 TypeScript strict 下回傳 `string | undefined`，改用 `substring(0, 10)`
 - VueDraggable `v-model` 綁 `columns[colIdx]!.entries`，需要非空斷言因為 array indexing 在 TS strict 下回傳 `T | undefined`
+- Open-Meteo geocoding 對中文口語地名（大阪、台北）常查不到，得打官方全名（大阪市、台北市）；純加 `language=zh` 只解決部分案例，改用 Gemini 先把地名正規化成英文再查才穩定
+- 開發時偶爾遇到的 API 失敗，重測前先確認不是 Nitro 熱重載中途命中舊代碼（server 檔案存檔瞬間會有短暫視窗打到舊版本）
 
 ---
 
@@ -191,4 +209,7 @@
 | AI 推薦批次 20 個前端分頁 | 減少 API 呼叫，換一批不重打 |
 | vue-draggable-plus v0.6.1 | SortableJS 的 Vue 3 wrapper，支援跨 group 拖曳 |
 | `order` 欄位排序 | 手動排序不依賴陣列 index，跨天移動後順序不亂 |
+| 天氣顆粒度：整個城市一個代表座標 | 跟主流天氣 App 一致，不逐行程地點查詢；決策記錄見 2026-07-06 |
+| 天氣地名查詢前先用 Gemini 正規化 | Open-Meteo geocoding 對中文口語地名覆蓋率不足，正規化成英文能解決大部分案例，多一次呼叫但天氣是 lazy fetch 只打一次 |
+| Open-Meteo（geocoding + forecast） | 免費、不需 key，符合 Phase 1 輕量原則 |
 | TypeScript strict | 提早抓 null/undefined，store interface 可跨檔案共用 |
