@@ -27,6 +27,13 @@ export interface Booking {
   createdAt: string
 }
 
+export interface PackingItem {
+  id: string
+  category: string
+  name: string
+  checked: boolean
+}
+
 export interface StandbyItem {
   id: string
   category: string
@@ -47,9 +54,10 @@ export interface Trip {
   itinerary: TripEntry[]
   standby: StandbyItem[]
   bookings: Booking[]
+  packingList: PackingItem[]
 }
 
-type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby' | 'bookings'>
+type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby' | 'bookings' | 'packingList'>
 
 export const useTripsStore = defineStore('trips', {
   state: () => ({
@@ -77,7 +85,8 @@ export const useTripsStore = defineStore('trips', {
         createdAt: new Date().toISOString(),
         itinerary: [],
         standby: [],
-        bookings: []
+        bookings: [],
+        packingList: []
       }
       this.trips.unshift(newTrip)
       this.save()
@@ -218,6 +227,19 @@ export const useTripsStore = defineStore('trips', {
       if (!trip) return
       const bookings = (trip.bookings || []).filter(b => b.id !== bookingId)
       this.updateTrip(tripId, { bookings })
+    },
+
+    setPackingList(tripId: string, packingList: PackingItem[]) {
+      this.updateTrip(tripId, { packingList })
+    },
+
+    togglePackingItem(tripId: string, itemId: string) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const packingList = (trip.packingList || []).map(i =>
+        i.id === itemId ? { ...i, checked: !i.checked } : i
+      )
+      this.updateTrip(tripId, { packingList })
     }
   }
 })
