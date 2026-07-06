@@ -323,67 +323,6 @@
         </button>
       </div>
 
-      <!-- AI 推薦面板 -->
-      <div v-if="showAiPanel" class="mt-4 bg-slate-900 rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-white text-sm font-bold">AI 景點推薦</span>
-          <div class="flex gap-2">
-            <button
-              v-for="cat in aiCategories"
-              :key="cat.key"
-              @click="aiCategory = cat.key"
-              class="text-xs px-2 py-1 rounded-full transition-all"
-              :class="aiCategory === cat.key ? 'bg-amber-400 text-slate-900 font-bold' : 'text-slate-400 hover:text-white'"
-            >{{ cat.label }}</button>
-          </div>
-        </div>
-
-        <div v-if="aiLoading" class="text-center py-6 text-slate-400 text-sm">
-          正在推薦中...
-        </div>
-        <div v-else-if="currentBatch.length === 0" class="text-center py-4">
-          <button
-            @click="fetchRecommendations"
-            class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-5 py-2 rounded-xl text-sm font-bold transition-colors"
-          >
-            開始推薦
-          </button>
-        </div>
-        <div v-else class="space-y-2">
-          <div
-            v-for="item in currentBatch"
-            :key="item.id"
-            class="bg-slate-800 rounded-xl p-3 flex items-start justify-between gap-3"
-          >
-            <div class="flex-1 min-w-0">
-              <p class="text-white text-sm font-semibold">{{ item.name }}</p>
-              <p class="text-slate-400 text-xs mt-0.5 line-clamp-2">{{ item.description }}</p>
-              <p class="text-slate-500 text-xs mt-1">⏱ 約 {{ item.duration }} 小時</p>
-            </div>
-            <button
-              @click="addFromAi(item)"
-              :disabled="addedIds.includes(item.id)"
-              class="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-              :class="addedIds.includes(item.id)
-                ? 'bg-slate-700 text-slate-400 cursor-default'
-                : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
-            >
-              {{ addedIds.includes(item.id) ? '✓ 已加入' : '加入備用' }}
-            </button>
-          </div>
-
-          <div class="flex justify-between pt-1">
-            <button
-              @click="nextBatch"
-              class="text-slate-400 hover:text-white text-xs transition-colors"
-            >
-              換一批 →
-            </button>
-            <span class="text-slate-600 text-xs">{{ batchIndex * 5 + 1 }}–{{ Math.min((batchIndex + 1) * 5, allRecommendations.length) }} / {{ allRecommendations.length }}</span>
-          </div>
-        </div>
-      </div>
-
       </div><!-- /手機視圖 -->
 
       <!-- 桌機橫向視圖 -->
@@ -411,17 +350,38 @@
             <div
               v-for="entry in columns[colIdx]!.entries"
               :key="entry.id"
-              class="bg-stone-50 rounded-lg overflow-hidden flex hover:bg-stone-100 transition-colors group cursor-pointer"
-              @click="openDesktopEdit(entry, col.date)"
+              class="bg-stone-50 rounded-lg overflow-hidden group"
             >
-              <div class="w-[3px] flex-shrink-0 self-stretch" :class="categoryColor(entry.category)"></div>
-              <div class="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
-                <span class="drag-handle cursor-grab active:cursor-grabbing text-stone-300 group-hover:text-stone-500 text-xs select-none transition-colors" @click.stop>⠿</span>
-                <div class="flex-1 min-w-0">
-                  <span v-if="entry.time" class="text-xs text-amber-500 font-mono font-semibold block leading-none mb-1">{{ entry.time }}</span>
-                  <p class="text-sm text-stone-700 font-semibold truncate leading-snug">{{ entry.name }}</p>
+              <div class="flex hover:bg-stone-100 transition-colors cursor-pointer" @click="openDesktopEdit(entry, col.date)">
+                <div class="w-[3px] flex-shrink-0 self-stretch" :class="categoryColor(entry.category)"></div>
+                <div class="flex-1 flex items-center gap-2 px-3 py-3 min-w-0">
+                  <span class="drag-handle cursor-grab active:cursor-grabbing text-stone-300 group-hover:text-stone-500 text-xs select-none transition-colors" @click.stop>⠿</span>
+                  <div class="flex-1 min-w-0">
+                    <span v-if="entry.time" class="text-xs text-amber-500 font-mono font-semibold block leading-none mb-1">{{ entry.time }}</span>
+                    <p class="text-sm text-stone-700 font-semibold truncate leading-snug">{{ entry.name }}</p>
+                  </div>
+                  <button
+                    v-if="entry.mapUrl"
+                    @click.stop="toggleMap(entry.id)"
+                    class="flex-shrink-0 transition-colors"
+                    :class="openMapId === entry.id ? 'text-amber-600' : 'text-stone-300 hover:text-amber-600'"
+                    title="地圖"
+                  >
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </button>
+                  <button @click.stop="removeEntry(entry.id)" class="text-stone-300 hover:text-red-400 text-base leading-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                 </div>
-                <button @click.stop="removeEntry(entry.id)" class="text-stone-300 hover:text-red-400 text-base leading-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+              </div>
+              <div v-if="entry.mapUrl && openMapId === entry.id" class="border-t border-stone-200">
+                <iframe
+                  :src="`https://maps.google.com/maps?q=${encodeURIComponent(entry.name)}&output=embed`"
+                  class="w-full h-40 border-0"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                ></iframe>
+                <div class="px-3 py-1.5 flex justify-end">
+                  <a :href="entry.mapUrl" target="_blank" rel="noopener" class="text-xs text-amber-600 hover:underline" @click.stop>在 Google Maps 開啟 ↗</a>
+                </div>
               </div>
             </div>
           </VueDraggable>
@@ -497,11 +457,11 @@
                     <div class="flex items-start justify-between gap-3 mb-2">
                       <p class="font-semibold text-stone-800 text-sm leading-snug">{{ item.name }}</p>
                       <button
-                        @click="addFromAi(item)"
+                        @click="openSchedule(item)"
                         :disabled="addedIds.includes(item.id)"
                         class="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
                         :class="addedIds.includes(item.id) ? 'bg-stone-100 text-stone-400 cursor-default' : 'bg-amber-400 hover:bg-amber-500 text-stone-900'"
-                      >{{ addedIds.includes(item.id) ? '✓ 已加入' : '加入備用' }}</button>
+                      >{{ addedIds.includes(item.id) ? '✓ 已加入' : '排入' }}</button>
                     </div>
                     <p class="text-xs text-stone-400 leading-relaxed">{{ item.description }}</p>
                     <p class="text-xs text-stone-300 mt-2">⏱ 約 {{ item.duration }} 小時</p>
@@ -741,10 +701,55 @@
         </div>
       </div>
 
+      <!-- 天氣預報 -->
+      <div>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">天氣預報</p>
+        <div v-if="weatherLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在查詢天氣...</div>
+        <div v-else-if="weatherError" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">{{ weatherError }}</div>
+        <div v-else-if="weatherDays.length === 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">暫無天氣資料</div>
+        <div v-else class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div v-for="d in weatherDays" :key="d.date" class="flex-shrink-0 w-20 bg-white rounded-2xl border border-stone-100 p-3 text-center">
+            <p class="text-xs text-slate-400 mb-1">{{ formatDate(d.date) }}</p>
+            <p class="text-2xl mb-1">{{ weatherEmoji(d.weatherCode) }}</p>
+            <p class="text-xs text-slate-700 font-medium">{{ Math.round(d.max) }}°</p>
+            <p class="text-xs text-slate-300">{{ Math.round(d.min) }}°</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 準備清單 -->
       <div>
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">準備清單</p>
-        <p class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">即將實作：出發前 checklist</p>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">準備清單</p>
+          <button
+            @click="generatePackingList"
+            :disabled="packingLoading"
+            class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors bg-amber-400 hover:bg-amber-500 text-slate-900 disabled:opacity-50"
+          >{{ packingLoading ? '生成中...' : (packingList.length ? '重新生成' : 'AI 生成清單') }}</button>
+        </div>
+
+        <div v-if="packingLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在生成清單...</div>
+
+        <div v-else-if="packingList.length === 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+          還沒有準備清單，點「AI 生成清單」開始
+        </div>
+
+        <div v-else class="bg-white rounded-2xl border border-stone-100 divide-y divide-stone-100">
+          <div v-for="(items, category) in packingCategories" :key="category" class="p-4">
+            <p class="text-xs font-semibold text-slate-400 mb-2">{{ category }}</p>
+            <div class="space-y-1.5">
+              <label v-for="item in items" :key="item.id" class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="item.checked"
+                  @change="togglePackingItem(item.id)"
+                  class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"
+                />
+                <span class="text-sm" :class="item.checked ? 'text-slate-300 line-through' : 'text-slate-700'">{{ item.name }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -783,6 +788,55 @@
             class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors"
           >{{ editingDesktopEntryId ? '儲存' : '新增' }}</button>
           <button @click="showDesktopAddModal = false" class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 推薦排入行程 dialog -->
+    <div
+      v-if="schedulingItem"
+      class="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-4"
+      @click.self="closeSchedule"
+    >
+      <div class="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
+        <div>
+          <p class="font-bold text-slate-800 text-base leading-snug">{{ schedulingItem.name }}</p>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ schedulingItem.description }}</p>
+        </div>
+
+        <button
+          @click="addFromAi(schedulingItem); closeSchedule()"
+          class="w-full py-2.5 rounded-xl text-sm font-bold bg-stone-100 hover:bg-stone-200 text-slate-700 transition-colors"
+        >加入備用</button>
+
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">或直接排入</p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="(day, i) in dayList"
+              :key="day.date"
+              @click="scheduleDay = day.date"
+              class="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors border"
+              :class="scheduleDay === day.date
+                ? 'bg-amber-400 border-amber-400 text-slate-900'
+                : 'bg-white border-stone-200 hover:border-amber-300 text-slate-600'"
+            >Day {{ i + 1 }} {{ day.label }}</button>
+          </div>
+        </div>
+
+        <div v-if="scheduleDay">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">時間（選填）</label>
+          <TimePicker v-model="scheduleTime" />
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button
+            @click="scheduleAiItem"
+            :disabled="!scheduleDay"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors"
+            :class="scheduleDay ? 'bg-amber-400 hover:bg-amber-500 text-slate-900' : 'bg-stone-100 text-slate-300 cursor-not-allowed'"
+          >排入行程</button>
+          <button @click="closeSchedule" class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors">取消</button>
         </div>
       </div>
     </div>
@@ -1112,7 +1166,7 @@ const moveToDay = (itemId: string, date: string) => {
 }
 
 // 訂單管理中心
-import type { Booking } from '~/stores/useTripsStore'
+import type { Booking, PackingItem } from '~/stores/useTripsStore'
 
 interface ParsedBooking {
   type: string
@@ -1299,6 +1353,40 @@ const addFromAi = (item: AiRecommendation) => {
   addedIds.value = [...addedIds.value, item.id]
 }
 
+// AI 推薦排入行程 dialog
+const schedulingItem = ref<AiRecommendation | null>(null)
+const scheduleDay = ref('')
+const scheduleTime = ref('')
+
+const openSchedule = (item: AiRecommendation) => {
+  schedulingItem.value = item
+  scheduleDay.value = ''
+  scheduleTime.value = ''
+}
+
+const closeSchedule = () => {
+  schedulingItem.value = null
+}
+
+const scheduleAiItem = () => {
+  if (!trip.value || !schedulingItem.value || !scheduleDay.value) return
+  const item = schedulingItem.value
+  const dayEntries = (trip.value.itinerary || []).filter(e => e.date === scheduleDay.value)
+  const maxOrder = dayEntries.reduce((m, e) => Math.max(m, e.order ?? 0), -1)
+  const itinerary: TripEntry[] = [...(trip.value.itinerary || []), {
+    id: Date.now().toString(),
+    date: scheduleDay.value,
+    time: scheduleTime.value,
+    category: item.category === 'food' ? 'food' : 'attraction',
+    name: item.name,
+    note: item.description,
+    order: maxOrder + 10
+  }]
+  tripsStore.updateTrip(trip.value.id, { itinerary })
+  addedIds.value = [...addedIds.value, item.id]
+  closeSchedule()
+}
+
 
 watch(aiCategory, () => {
   batchIndex.value = 0
@@ -1415,6 +1503,94 @@ const addEntryFromModal = () => {
   tripsStore.updateTrip(trip.value!.id, { itinerary })
   showDesktopAddModal.value = false
 }
+
+// 準備清單
+const packingLoading = ref(false)
+const packingList = computed(() => trip.value?.packingList || [])
+const packingCategories = computed(() => {
+  const groups: Record<string, PackingItem[]> = {}
+  for (const item of packingList.value) {
+    (groups[item.category] ??= []).push(item)
+  }
+  return groups
+})
+
+const generatePackingList = async () => {
+  if (!trip.value) return
+  packingLoading.value = true
+  try {
+    const res = await $fetch<{ categories: { category: string; items: string[] }[] }>('/api/packing-list', {
+      method: 'POST',
+      body: {
+        destination: trip.value.destination,
+        days: trip.value.days,
+        startDate: trip.value.startDate,
+        apiKey: geminiKey.value
+      }
+    })
+    const items: PackingItem[] = res.categories.flatMap((c, ci) =>
+      c.items.map((name, i) => ({ id: `${Date.now()}_${ci}_${i}`, category: c.category, name, checked: false }))
+    )
+    tripsStore.setPackingList(trip.value.id, items)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    packingLoading.value = false
+  }
+}
+
+const togglePackingItem = (itemId: string) => {
+  if (!trip.value) return
+  tripsStore.togglePackingItem(trip.value.id, itemId)
+}
+
+// 天氣預報
+interface WeatherDay { date: string; weatherCode: number; max: number; min: number }
+const weatherLoading = ref(false)
+const weatherError = ref('')
+const weatherDays = ref<WeatherDay[]>([])
+const weatherFetched = ref(false)
+
+const fetchWeather = async () => {
+  if (!trip.value) return
+  weatherLoading.value = true
+  weatherError.value = ''
+  try {
+    const res = await $fetch<{ location: string; days: WeatherDay[] }>('/api/weather', {
+      query: {
+        destination: trip.value.destination,
+        startDate: trip.value.startDate,
+        endDate: trip.value.endDate,
+        apiKey: geminiKey.value
+      }
+    })
+    weatherDays.value = res.days
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    weatherError.value = err.data?.statusMessage || '無法取得天氣資料'
+    weatherDays.value = []
+  } finally {
+    weatherLoading.value = false
+  }
+}
+
+const weatherEmoji = (code: number) => {
+  if (code === 0) return '☀️'
+  if ([1, 2, 3].includes(code)) return '⛅'
+  if ([45, 48].includes(code)) return '🌫️'
+  if ([51, 53, 55, 56, 57].includes(code)) return '🌦️'
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return '🌧️'
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️'
+  if ([95, 96, 99].includes(code)) return '⛈️'
+  return '🌤️'
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'info' && !weatherFetched.value) {
+    weatherFetched.value = true
+    fetchWeather()
+  }
+}, { immediate: true })
 
 const saveDesktopEdit = () => {
   if (!newEntry.name.trim() || !editingDesktopEntryId.value || !trip.value) return
