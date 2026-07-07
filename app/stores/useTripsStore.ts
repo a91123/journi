@@ -9,11 +9,13 @@ export interface TripEntry {
   note?: string
   order?: number
   mapUrl?: string
+  lat?: number
+  lon?: number
 }
 
 export interface Booking {
   id: string
-  type: 'hotel' | 'flight' | 'ticket' | 'car_rental' | 'train' | 'other'
+  type: 'hotel' | 'flight' | 'ticket' | 'car_rental' | 'train' | 'airport_transfer' | 'other'
   name: string
   confirmationNumber: string | null
   startDate: string | null
@@ -43,6 +45,12 @@ export interface StandbyItem {
   time?: string
 }
 
+export interface Companion {
+  id: string
+  name: string
+  note?: string
+}
+
 export interface Trip {
   id: string
   destination: string
@@ -50,14 +58,16 @@ export interface Trip {
   endDate: string
   days: number
   budget?: string | number | null
+  currency?: string
   createdAt: string
   itinerary: TripEntry[]
   standby: StandbyItem[]
   bookings: Booking[]
   packingList: PackingItem[]
+  companions: Companion[]
 }
 
-type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby' | 'bookings' | 'packingList'>
+type NewTripInput = Omit<Trip, 'id' | 'createdAt' | 'itinerary' | 'standby' | 'bookings' | 'packingList' | 'companions'>
 
 export const useTripsStore = defineStore('trips', {
   state: () => ({
@@ -86,7 +96,8 @@ export const useTripsStore = defineStore('trips', {
         itinerary: [],
         standby: [],
         bookings: [],
-        packingList: []
+        packingList: [],
+        companions: []
       }
       this.trips.unshift(newTrip)
       this.save()
@@ -240,6 +251,27 @@ export const useTripsStore = defineStore('trips', {
         i.id === itemId ? { ...i, checked: !i.checked } : i
       )
       this.updateTrip(tripId, { packingList })
+    },
+
+    setEntryLocation(tripId: string, entryId: string, lat: number, lon: number) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const itinerary = trip.itinerary.map(e => e.id === entryId ? { ...e, lat, lon } : e)
+      this.updateTrip(tripId, { itinerary })
+    },
+
+    addCompanion(tripId: string, companion: Omit<Companion, 'id'>) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const companions = [...(trip.companions || []), { ...companion, id: Date.now().toString() }]
+      this.updateTrip(tripId, { companions })
+    },
+
+    removeCompanion(tripId: string, companionId: string) {
+      const trip = this.trips.find(t => t.id === tripId)
+      if (!trip) return
+      const companions = (trip.companions || []).filter(c => c.id !== companionId)
+      this.updateTrip(tripId, { companions })
     }
   }
 })
