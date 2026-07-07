@@ -21,6 +21,48 @@
 - **踩坑**：Open-Meteo geocoding 對中文口語地名（大阪、台北）查不到，得打官方全名（大阪市、台北市）；純加 `language=zh` 只解決部分案例
 - **修法**：查詢前先用 Gemini 把目的地正規化成英文地名（如「大阪」→「Osaka」）再查，失敗才 fallback 回原字串 + zh/en/無語言三段嘗試。城市天氣顆粒度維持整個城市一個代表座標（跟主流天氣 App 一致，不做逐行程地點查詢）
 
+#### 匯率參考
+- 新增 `server/api/exchange-rate.get.ts`：open.er-api.com（免 key，支援 TWD，Frankfurter 不支援 TWD 所以換這家）
+- 前端依目的地關鍵字猜測預設幣別（`guessCurrency`），可用下拉選單覆寫，選擇存回 `trip.currency`
+- 資訊 Tab 顯示雙向匯率：1 TWD ≈ X、100 X ≈ Y TWD
+
+#### 旅伴管理
+- Store 新增 `Companion` 型別（name/note）+ `addCompanion`/`removeCompanion` actions
+- 資訊 Tab 加旅伴列表區塊（新增/刪除，note 可填護照號碼等資訊）
+
+#### 機場接送（+ 通用手動新增訂單）
+- `Booking.type` 加 `airport_transfer`
+- 新增訂單面板加第三種模式「手動新增」（不經 AI 解析），欄位：類型/名稱/日期時間/地點/航班號/備註，類型下拉預設機場接送但可選任何 Booking 類型，適用所有不需要 AI 解析的手動記錄
+- 訂單 filter 加「🚐 接送」分類
+
+#### 地圖檢視
+- 新增 `server/api/geocode.get.ts`：代理 Nominatim（OSM 免費 geocoding），帶自訂 `User-Agent`
+- 新增「地圖」Tab（行程/總覽/**地圖**/資訊），沿用行程 Tab 的 Day 選擇器
+- 用 Leaflet + OSM 圖磚渲染地圖：把當天行程每筆 entry 的 `name` + 目的地組合查 geocode（有 cache，避免重查），依序畫 marker + 折線連接，`fitBounds` 自動置中
+- **踩坑**：`GOOGLE_MAPS_API_KEY`（.env 裡的）實測是無效值，Maps Embed API 回「API key invalid」，所以沒有走 Google 地圖這條路
+- **踩坑**：Nominatim 有 1 req/sec 速率限制，每筆 geocode 間隔 1.1 秒 sleep（只有真的打 API 才 sleep，cache 命中或已存座標不用）；瀏覽器直接呼叫不符合 Nominatim 使用政策（缺自訂 User-Agent），所以走 server 端代理
+- 進入地圖 Tab 才動態 import leaflet + 建立地圖實例，離開 Tab 時 `remove()` 銷毀
+
+---
+
+## 今日進度（2026-07-07）
+
+#### 匯率參考：自訂金額換算
+- 加輸入框可打任意金額（預設 10000 TWD）+ 方向切換「⇄」
+- **踩坑**：切換方向按鈕原本只換方向不換數字，會讓使用者覺得數字憑空跳掉；改成切換時把目前換算結果帶到輸入框，體感上才像「交換」
+
+#### 訂單：類別 focus 時常駐快速新增
+- 篩選到特定類別（如「🚐 接送」）時，filter tags 旁邊常駐顯示「+ 新增{類別}」，點了直接開手動新增表單並帶入該類型，不用先想「原來新增在上面那個按鈕」
+- 拿掉原本只在「類別空的時候」才出現的按鈕（會在加過一筆後消失，不利於加第二筆同類型訂單）
+
+#### 地圖檢視：三個實測後發現的 bug
+- **踩坑 1（白圖）**：地圖容器原本用 `v-if="currentDayEntries.length===0"` 跟地圖 `v-else` 切換渲染，切到空白天數再切回原本天數時，容器 DOM 被卸載又重新掛載，但 Leaflet map instance 還綁著舊的（已消失的）DOM node，導致地圖變白。**修法**：容器永遠渲染，空狀態改成蓋在地圖上面的絕對定位遮罩，Leaflet instance 全程綁同一個 DOM node
+- **踩坑 2（開圖先閃台灣）**：地圖初始化寫死中心在台北，等第一個景點定位完成才 `fitBounds` 跳過去，看起來像「台灣→空白→目的地」在跳動。**修法**：`initMap` 先查一次目的地本身的座標，一開場就置中在正確城市
+- **踩坑 3（地名查到別的國家，最關鍵）**：目的地是廣域地區名稱時（例如「關西」），Nominatim 常把它當成中國/印度同名小地方，導致「景點名稱 + 關西」整串查詢查到完全不同國家。純加城市 context（如「大阪」）没問題，但「關西」這種詞本身就是模糊的。**修法**：跟天氣同一招，新增 `server/api/normalize-place.get.ts` 用 Gemini 把目的地轉換成具體城市層級英文地名（「關西」→「Osaka, Japan」），全部景點查詢都用這個轉換後的結果當 context；地圖 Tab 每次只正規化一次（有 cache）
+  - **踩坑**：一開始 prompt 要 Gemini 回傳「地區, 國家」（如「Kansai, Japan」），結果「景點名稱, Kansai, Japan」這種三段式查詢在 Nominatim 完全查不到（連正確地點都找不到），改成明確要求回傳「代表城市, 國家」（如「Osaka, Japan」）才穩定
+- 座標查到後存回 `TripEntry.lat/lon`（store 新增 `setEntryLocation` action），下次開地圖不用重查，大幅加速也減少 Nominatim 呼叫
+- marker 改用編號 `divIcon`（1、2、3...），不用點開彈窗也看得出行程順序，順便不用再處理 Leaflet 預設圖示在 Vite 打包的路徑問題
+
 ---
 
 ## 今日進度（2026-06-24）
@@ -157,12 +199,12 @@
 
 ## 明天從哪開始
 
-準備清單、天氣查詢已完成（見 2026-07-06 進度）。下一個優先順序：
+Phase 1 清單已全部完成（見 2026-07-06 進度）。下一步是 Phase 2：
 
-1. **旅伴管理**（一個人管全家機票）
-2. **機場接送**（手動填表單）
-3. **匯率參考**
-4. **地圖檢視**（Google Maps 整體地圖，非單筆行程連結）
+1. **帳號系統**（Supabase Auth，`nuxt.config.ts` 裡註解的 `@nuxtjs/supabase` 模組先打開）
+2. **行程分享給同行者**
+3. **行事曆同步（Google Calendar）**
+4. **出發提醒通知**
 
 ---
 
@@ -183,6 +225,10 @@
 - [x] 桌機版行程卡地圖 icon
 - [x] 準備清單自動生成
 - [x] 天氣查詢
+- [x] 匯率參考
+- [x] 旅伴管理
+- [x] 機場接送（+ 通用手動新增訂單）
+- [x] 地圖檢視（Leaflet + OpenStreetMap）
 
 ---
 
@@ -196,6 +242,8 @@
 - VueDraggable `v-model` 綁 `columns[colIdx]!.entries`，需要非空斷言因為 array indexing 在 TS strict 下回傳 `T | undefined`
 - Open-Meteo geocoding 對中文口語地名（大阪、台北）常查不到，得打官方全名（大阪市、台北市）；純加 `language=zh` 只解決部分案例，改用 Gemini 先把地名正規化成英文再查才穩定
 - 開發時偶爾遇到的 API 失敗，重測前先確認不是 Nitro 熱重載中途命中舊代碼（server 檔案存檔瞬間會有短暫視窗打到舊版本）
+- 條件渲染（`v-if`/`v-else`）切換的容器裡如果放了第三方 JS library（Leaflet 等）綁定的 DOM node，容器被卸載重掛時 library instance 會綁到已消失的舊 node；只要畫面在同一個 Tab 裡可能重複切換就該讓容器永遠渲染，用遮罩處理空狀態，不要用 v-if 拆掉容器本身
+- Nominatim 對「廣域地區名 + 具體景點名」的複合查詢常常整串查不到（例如「心齋橋, Kansai, Japan」），但「具體城市 + 景點名」沒問題（「心齋橋, Osaka, Japan」）；用 Gemini 正規化模糊地名時要明確要求輸出城市層級，不要輸出地區層級
 
 ---
 
@@ -213,3 +261,6 @@
 | 天氣地名查詢前先用 Gemini 正規化 | Open-Meteo geocoding 對中文口語地名覆蓋率不足，正規化成英文能解決大部分案例，多一次呼叫但天氣是 lazy fetch 只打一次 |
 | Open-Meteo（geocoding + forecast） | 免費、不需 key，符合 Phase 1 輕量原則 |
 | TypeScript strict | 提早抓 null/undefined，store interface 可跨檔案共用 |
+| 地圖用 Leaflet + OpenStreetMap，不用 Google Maps | `.env` 的 `GOOGLE_MAPS_API_KEY` 實測是無效值；Leaflet+OSM 免費免 key，跟其他免費服務風格一致 |
+| 地圖景點座標查到後存回 `TripEntry.lat/lon` | 避免每次開地圖 Tab 都重新對 Nominatim 發查詢，省時間也省請求量 |
+| 地名模糊時用 Gemini 正規化成「城市, 國家」 | 廣域地區名（如「關西」）直接查會撞名到其他國家；正規化成具體城市層級（非地區層級）Nominatim 才穩定查得到 |
