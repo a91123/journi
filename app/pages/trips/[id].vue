@@ -532,8 +532,79 @@
       </div>
     </div>
 
+    <!-- 地圖 Tab -->
+    <div v-else-if="activeTab === 'map'" class="pb-24 lg:pb-6">
+      <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+        <button
+          v-for="(day, index) in dayList"
+          :key="index"
+          @click="activeDay = index"
+          class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all text-sm"
+          :class="activeDay === index
+            ? 'bg-amber-400 border-amber-400 text-stone-900 font-bold shadow-sm'
+            : 'bg-white border-stone-200 text-stone-400 hover:border-amber-300 hover:text-stone-600'"
+        >
+          <span class="font-bold">Day {{ index + 1 }}</span>
+          <span class="text-xs opacity-70">{{ day.label }}</span>
+        </button>
+      </div>
+
+      <div class="relative">
+        <div ref="mapContainer" class="w-full h-96 rounded-2xl border border-stone-200 overflow-hidden"></div>
+        <div v-if="currentDayEntries.length === 0" class="absolute inset-0 flex items-center justify-center bg-white/90 rounded-2xl">
+          <div class="text-center text-stone-300">
+            <p class="text-3xl mb-2">🗺️</p>
+            <p class="text-sm">這天還沒有行程</p>
+          </div>
+        </div>
+        <div v-else-if="mapLoading" class="absolute inset-0 flex items-center justify-center bg-white/50 rounded-2xl pointer-events-none">
+          <div class="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm border border-stone-100">
+            <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-slate-500">定位中 {{ mapProgress }}</span>
+          </div>
+        </div>
+      </div>
+      <p v-if="!mapLoading && currentDayEntries.length > 0 && mapNotFoundCount > 0" class="text-xs text-slate-400 mt-2 text-center">{{ mapNotFoundCount }} 個地點定位不到，已略過</p>
+    </div>
+
     <!-- 資訊 Tab -->
     <div v-else-if="activeTab === 'info'" class="pb-24 lg:pb-6 space-y-6">
+
+      <!-- 旅伴 -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">旅伴</p>
+          <button
+            @click="showAddCompanion = !showAddCompanion"
+            class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
+            :class="showAddCompanion ? 'bg-slate-100 text-slate-500' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          >{{ showAddCompanion ? '收起' : '+ 新增' }}</button>
+        </div>
+
+        <div v-if="showAddCompanion" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-2 mb-3">
+          <input v-model="newCompanion.name" placeholder="姓名" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+          <input v-model="newCompanion.note" placeholder="備註（如：護照號碼、生日，選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+          <button
+            @click="addCompanion"
+            :disabled="!newCompanion.name.trim()"
+            class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
+            :class="!newCompanion.name.trim() ? 'bg-stone-100 text-slate-400 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          >新增旅伴</button>
+        </div>
+
+        <div v-if="tripCompanions.length === 0 && !showAddCompanion" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+          還沒有旅伴，點「+ 新增」開始
+        </div>
+        <div v-else class="space-y-2">
+          <div v-for="c in tripCompanions" :key="c.id" class="bg-white rounded-2xl border border-stone-100 p-3 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-semibold text-slate-800 text-sm">{{ c.name }}</p>
+              <p v-if="c.note" class="text-xs text-slate-400 truncate">{{ c.note }}</p>
+            </div>
+            <button @click="tripsStore.removeCompanion(trip!.id, c.id)" class="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 text-lg leading-none">×</button>
+          </div>
+        </div>
+      </div>
 
       <!-- 訂單管理中心 -->
       <div>
@@ -547,7 +618,7 @@
         </div>
 
         <!-- 新增訂單面板 -->
-        <div v-if="showAddBooking" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-3 mb-3">
+        <div v-if="showAddBooking" ref="addBookingEl" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-3 mb-3">
           <div class="flex gap-2">
             <button
               @click="confirmMode = 'text'"
@@ -559,6 +630,11 @@
               class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
               :class="confirmMode === 'pdf' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
             >上傳 PDF</button>
+            <button
+              @click="confirmMode = 'manual'"
+              class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+              :class="confirmMode === 'manual' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+            >手動新增</button>
           </div>
 
           <textarea
@@ -569,7 +645,7 @@
             class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 resize-none"
           />
 
-          <div v-else>
+          <div v-else-if="confirmMode === 'pdf'">
             <label
               class="flex flex-col items-center gap-2 py-7 border-2 border-dashed border-stone-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors"
               :class="confirmFile ? 'border-emerald-300 bg-emerald-50' : ''"
@@ -580,7 +656,29 @@
             </label>
           </div>
 
+          <!-- 手動新增表單（機場接送等不需要 AI 解析的項目） -->
+          <div v-else class="space-y-2">
+            <select v-model="manualBooking.type" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 bg-white">
+              <option value="airport_transfer">🚐 機場接送</option>
+              <option value="hotel">🏨 住宿</option>
+              <option value="flight">✈️ 機票</option>
+              <option value="train">🚄 火車</option>
+              <option value="car_rental">🚗 租車</option>
+              <option value="ticket">🎟 票券</option>
+              <option value="other">📋 其他</option>
+            </select>
+            <input v-model="manualBooking.name" placeholder="名稱（如：接機 - 桃園機場）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+            <div class="grid grid-cols-2 gap-2">
+              <input v-model="manualBooking.startDate" type="date" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+              <TimePicker v-model="manualBooking.startTime" />
+            </div>
+            <input v-model="manualBooking.location" placeholder="地點（如：第一航廈入境大廳）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+            <input v-model="manualBooking.confirmationNumber" placeholder="航班號 / 訂單號（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+            <input v-model="manualBooking.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+          </div>
+
           <button
+            v-if="confirmMode !== 'manual'"
             @click="parseConfirmation"
             :disabled="confirmLoading || (confirmMode === 'text' ? !confirmText.trim() : !confirmFile)"
             class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
@@ -588,6 +686,14 @@
               ? 'bg-stone-100 text-slate-400 cursor-not-allowed'
               : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
           >{{ confirmLoading ? '解析中...' : 'AI 解析' }}</button>
+
+          <button
+            v-else
+            @click="saveManualBooking"
+            :disabled="!manualBooking.name.trim()"
+            class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
+            :class="!manualBooking.name.trim() ? 'bg-stone-100 text-slate-400 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          >新增訂單</button>
 
           <div v-if="confirmError" class="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2">{{ confirmError }}</div>
 
@@ -626,16 +732,23 @@
         </div>
 
         <!-- Filter Tags -->
-        <div v-if="tripBookings.length > 0" class="flex gap-2 flex-wrap mb-2">
+        <div v-if="tripBookings.length > 0" class="flex items-center justify-between gap-2 flex-wrap mb-2">
+          <div class="flex gap-2 flex-wrap">
+            <button
+              v-for="f in bookingFilters"
+              :key="f.value"
+              @click="activeBookingFilter = f.value"
+              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="activeBookingFilter === f.value
+                ? 'bg-amber-400 text-slate-900'
+                : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+            >{{ f.label }}</button>
+          </div>
           <button
-            v-for="f in bookingFilters"
-            :key="f.value"
-            @click="activeBookingFilter = f.value"
-            class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-            :class="activeBookingFilter === f.value
-              ? 'bg-amber-400 text-slate-900'
-              : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
-          >{{ f.label }}</button>
+            v-if="activeBookingFilter !== 'all'"
+            @click="quickAddBooking(activeBookingFilter as Booking['type'])"
+            class="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors flex-shrink-0"
+          >+ 新增{{ bookingTypeLabel(activeBookingFilter) }}</button>
         </div>
 
         <!-- 訂單列表 -->
@@ -713,6 +826,57 @@
             <p class="text-2xl mb-1">{{ weatherEmoji(d.weatherCode) }}</p>
             <p class="text-xs text-slate-700 font-medium">{{ Math.round(d.max) }}°</p>
             <p class="text-xs text-slate-300">{{ Math.round(d.min) }}°</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 匯率參考 -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">匯率參考</p>
+          <select
+            v-model="selectedCurrency"
+            class="text-xs border border-stone-200 rounded-lg px-2 py-1 outline-none focus:border-amber-400 bg-white text-slate-600"
+          >
+            <option v-for="c in currencyOptions" :key="c.code" :value="c.code">{{ c.flag }} {{ c.code }}</option>
+          </select>
+        </div>
+        <div v-if="exchangeLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在查詢匯率...</div>
+        <div v-else-if="exchangeError" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">{{ exchangeError }}</div>
+        <div v-else-if="exchangeRate" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-4">
+          <!-- 自訂金額換算 -->
+          <div class="flex items-center gap-2">
+            <div class="flex-1 flex items-center border border-stone-200 rounded-xl px-3 py-2 focus-within:border-amber-400">
+              <input
+                v-model.number="exchangeAmount"
+                type="number"
+                min="0"
+                class="w-full outline-none text-sm"
+              />
+              <span class="text-xs text-slate-400 flex-shrink-0">{{ exchangeDirection === 'toForeign' ? 'TWD' : selectedCurrency }}</span>
+            </div>
+            <button
+              @click="swapExchangeDirection"
+              class="flex-shrink-0 text-stone-400 hover:text-amber-600 transition-colors p-2"
+              title="切換換算方向"
+            >⇄</button>
+            <div class="flex-1 flex items-center border border-stone-100 bg-stone-50 rounded-xl px-3 py-2">
+              <span class="w-full text-sm font-semibold text-slate-800 truncate">{{ convertedAmount }}</span>
+              <span class="text-xs text-slate-400 flex-shrink-0">{{ exchangeDirection === 'toForeign' ? selectedCurrency : 'TWD' }}</span>
+            </div>
+          </div>
+
+          <!-- 參考匯率 -->
+          <div class="flex items-center justify-around text-center pt-3 border-t border-stone-100">
+            <div>
+              <p class="text-xs text-slate-400 mb-1">1 TWD</p>
+              <p class="text-lg font-bold text-slate-800">{{ exchangeRate.toFixed(4) }} {{ selectedCurrency }}</p>
+            </div>
+            <span class="text-stone-200">|</span>
+            <div>
+              <p class="text-xs text-slate-400 mb-1">100 {{ selectedCurrency }}</p>
+              <p class="text-lg font-bold text-slate-800">{{ (100 / exchangeRate).toFixed(1) }} TWD</p>
+            </div>
           </div>
         </div>
       </div>
@@ -921,6 +1085,7 @@
 
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
+import 'leaflet/dist/leaflet.css'
 import type { TripEntry } from '~/stores/useTripsStore'
 
 interface Column { date: string; entries: TripEntry[] }
@@ -946,6 +1111,7 @@ const trip = computed(() => tripsStore.getTrip(route.params.id as string))
 const tabs = [
   { key: 'itinerary', label: '行程' },
   { key: 'overview', label: '總覽' },
+  { key: 'map', label: '地圖' },
   { key: 'info', label: '資訊' }
 ]
 const desktopTabs = tabs.filter(t => t.key !== 'overview')
@@ -1165,8 +1331,21 @@ const moveToDay = (itemId: string, date: string) => {
   if (standbyItems.value.length <= 1) showStandbyDrawer.value = false
 }
 
-// 訂單管理中心
+// 旅伴
 import type { Booking, PackingItem } from '~/stores/useTripsStore'
+
+const tripCompanions = computed(() => trip.value?.companions || [])
+const showAddCompanion = ref(false)
+const newCompanion = reactive({ name: '', note: '' })
+
+const addCompanion = () => {
+  if (!trip.value || !newCompanion.name.trim()) return
+  tripsStore.addCompanion(trip.value.id, { name: newCompanion.name, note: newCompanion.note || undefined })
+  Object.assign(newCompanion, { name: '', note: '' })
+  showAddCompanion.value = false
+}
+
+// 訂單管理中心
 
 interface ParsedBooking {
   type: string
@@ -1192,6 +1371,7 @@ const bookingFilters = [
   { value: 'train', label: '🚄 火車' },
   { value: 'car_rental', label: '🚗 租車' },
   { value: 'ticket', label: '🎟 票券' },
+  { value: 'airport_transfer', label: '🚐 接送' },
 ]
 const activeBookingFilter = ref('all')
 const filteredBookings = computed(() =>
@@ -1202,12 +1382,12 @@ const filteredBookings = computed(() =>
 
 const bookingTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
-    hotel: '住宿', flight: '機票', ticket: '票券', car_rental: '租車', train: '火車', other: '其他'
+    hotel: '住宿', flight: '機票', ticket: '票券', car_rental: '租車', train: '火車', airport_transfer: '機場接送', other: '其他'
   }
   return labels[type] ?? '其他'
 }
 const showAddBooking = ref(false)
-const confirmMode = ref<'text' | 'pdf'>('text')
+const confirmMode = ref<'text' | 'pdf' | 'manual'>('text')
 const confirmText = ref('')
 const confirmFile = ref<File | null>(null)
 const confirmLoading = ref(false)
@@ -1224,9 +1404,46 @@ const onFileChange = (e: Event) => {
 
 const bookingTypeIcon = (type: string) => {
   const icons: Record<string, string> = {
-    hotel: '🏨', flight: '✈️', ticket: '🎟', car_rental: '🚗', train: '🚄'
+    hotel: '🏨', flight: '✈️', ticket: '🎟', car_rental: '🚗', train: '🚄', airport_transfer: '🚐'
   }
   return icons[type] ?? '📋'
+}
+
+const manualBooking = reactive({
+  type: 'airport_transfer' as Booking['type'],
+  name: '',
+  startDate: '',
+  startTime: '',
+  location: '',
+  confirmationNumber: '',
+  note: ''
+})
+
+const saveManualBooking = () => {
+  if (!trip.value || !manualBooking.name.trim()) return
+  tripsStore.addBooking(trip.value.id, {
+    type: manualBooking.type,
+    name: manualBooking.name,
+    confirmationNumber: manualBooking.confirmationNumber || null,
+    startDate: manualBooking.startDate || null,
+    startTime: manualBooking.startTime || null,
+    endDate: null,
+    endTime: null,
+    location: manualBooking.location || null,
+    note: manualBooking.note || null,
+    price: null
+  })
+  Object.assign(manualBooking, { type: 'airport_transfer', name: '', startDate: '', startTime: '', location: '', confirmationNumber: '', note: '' })
+  showAddBooking.value = false
+}
+
+const addBookingEl = ref<HTMLElement | null>(null)
+
+const quickAddBooking = (type: Booking['type']) => {
+  manualBooking.type = type
+  confirmMode.value = 'manual'
+  showAddBooking.value = true
+  nextTick(() => addBookingEl.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
 }
 
 const extractQrCodes = async (file: File): Promise<string[]> => {
@@ -1585,10 +1802,241 @@ const weatherEmoji = (code: number) => {
   return '🌤️'
 }
 
-watch(activeTab, (tab) => {
+// 匯率參考
+const currencyOptions = [
+  { code: 'JPY', flag: '🇯🇵' }, { code: 'KRW', flag: '🇰🇷' }, { code: 'USD', flag: '🇺🇸' },
+  { code: 'EUR', flag: '🇪🇺' }, { code: 'GBP', flag: '🇬🇧' }, { code: 'HKD', flag: '🇭🇰' },
+  { code: 'CNY', flag: '🇨🇳' }, { code: 'THB', flag: '🇹🇭' }, { code: 'SGD', flag: '🇸🇬' },
+  { code: 'MYR', flag: '🇲🇾' }, { code: 'IDR', flag: '🇮🇩' }, { code: 'PHP', flag: '🇵🇭' },
+  { code: 'AUD', flag: '🇦🇺' }, { code: 'NZD', flag: '🇳🇿' }, { code: 'CAD', flag: '🇨🇦' },
+  { code: 'CHF', flag: '🇨🇭' }, { code: 'INR', flag: '🇮🇳' }, { code: 'TRY', flag: '🇹🇷' }
+]
+
+const guessCurrency = (destination: string): string => {
+  const rules: [RegExp, string][] = [
+    [/日本|東京|大阪|京都|北海道|沖繩|名古屋|Japan|Tokyo|Osaka|Kyoto/i, 'JPY'],
+    [/韓國|首爾|釜山|Korea|Seoul|Busan/i, 'KRW'],
+    [/泰國|曼谷|清邁|普吉|Thailand|Bangkok/i, 'THB'],
+    [/新加坡|Singapore/i, 'SGD'],
+    [/馬來西亞|吉隆坡|檳城|Malaysia/i, 'MYR'],
+    [/印尼|峇里|雅加達|Indonesia|Bali/i, 'IDR'],
+    [/菲律賓|馬尼拉|宿霧|Philippines|Manila/i, 'PHP'],
+    [/香港|Hong Kong/i, 'HKD'],
+    [/中國|上海|北京|China|Shanghai|Beijing/i, 'CNY'],
+    [/美國|紐約|洛杉磯|舊金山|USA|United States|New York/i, 'USD'],
+    [/加拿大|溫哥華|多倫多|Canada/i, 'CAD'],
+    [/英國|倫敦|UK|London/i, 'GBP'],
+    [/法國|德國|義大利|西班牙|荷蘭|France|Germany|Italy|Spain|Paris|Rome/i, 'EUR'],
+    [/澳洲|雪梨|墨爾本|Australia|Sydney/i, 'AUD'],
+    [/紐西蘭|New Zealand/i, 'NZD'],
+    [/瑞士|Switzerland/i, 'CHF'],
+    [/土耳其|Turkey/i, 'TRY'],
+    [/印度|India/i, 'INR']
+  ]
+  for (const [re, code] of rules) if (re.test(destination)) return code
+  return 'JPY'
+}
+
+const exchangeLoading = ref(false)
+const exchangeError = ref('')
+const exchangeRates = ref<Record<string, number> | null>(null)
+const exchangeAmount = ref(10000)
+const exchangeDirection = ref<'toForeign' | 'toTwd'>('toForeign')
+const exchangeFetched = ref(false)
+
+const selectedCurrency = computed({
+  get: () => trip.value?.currency || guessCurrency(trip.value?.destination || ''),
+  set: (code: string) => {
+    if (!trip.value) return
+    tripsStore.updateTrip(trip.value.id, { currency: code })
+  }
+})
+
+const exchangeRate = computed(() => exchangeRates.value?.[selectedCurrency.value] ?? null)
+
+const convertedValue = computed(() => {
+  if (!exchangeRate.value || !exchangeAmount.value) return 0
+  return exchangeDirection.value === 'toForeign'
+    ? exchangeAmount.value * exchangeRate.value
+    : exchangeAmount.value / exchangeRate.value
+})
+
+const convertedAmount = computed(() => convertedValue.value.toLocaleString('zh-TW', { maximumFractionDigits: 2 }))
+
+const swapExchangeDirection = () => {
+  exchangeAmount.value = Math.round(convertedValue.value * 100) / 100
+  exchangeDirection.value = exchangeDirection.value === 'toForeign' ? 'toTwd' : 'toForeign'
+}
+
+const fetchExchangeRates = async () => {
+  exchangeLoading.value = true
+  exchangeError.value = ''
+  try {
+    const res = await $fetch<{ rates: Record<string, number> }>('/api/exchange-rate')
+    exchangeRates.value = res.rates
+  } catch {
+    exchangeError.value = '無法取得匯率資料'
+  } finally {
+    exchangeLoading.value = false
+  }
+}
+
+// 地圖檢視
+const mapContainer = ref<HTMLElement | null>(null)
+const mapInitialized = ref(false)
+const mapLoading = ref(false)
+const mapProgress = ref('')
+const mapNotFoundCount = ref(0)
+const mapDestinationContext = ref('')
+const geocodeCache: Record<string, { lat: number; lon: number } | null> = {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let leafletMap: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let leafletInstance: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mapPolyline: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mapMarkers: any[] = []
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const resolveMapDestination = async () => {
+  if (mapDestinationContext.value || !trip.value) return
+  try {
+    const res = await $fetch<{ normalized: string }>('/api/normalize-place', {
+      query: { destination: trip.value.destination, apiKey: geminiKey.value }
+    })
+    mapDestinationContext.value = res.normalized
+  } catch {
+    mapDestinationContext.value = trip.value.destination
+  }
+}
+
+const geocodeEntry = async (entry: TripEntry): Promise<{ lat: number; lon: number } | null> => {
+  if (entry.lat != null && entry.lon != null) return { lat: entry.lat, lon: entry.lon }
+
+  const destinationContext = mapDestinationContext.value || trip.value?.destination || ''
+  const key = `${destinationContext}__${entry.name}`
+  if (key in geocodeCache) return geocodeCache[key]!
+
+  try {
+    const res = await $fetch<{ lat: number; lon: number }>('/api/geocode', {
+      query: { q: `${entry.name}, ${destinationContext}` }
+    })
+    geocodeCache[key] = { lat: res.lat, lon: res.lon }
+    if (trip.value) tripsStore.setEntryLocation(trip.value.id, entry.id, res.lat, res.lon)
+    await sleep(1100) // 對 Nominatim 好一點：只有真的打了 API 才需要間隔
+  } catch {
+    geocodeCache[key] = null
+  }
+  return geocodeCache[key]!
+}
+
+const numberIcon = (n: number) => leafletInstance.divIcon({
+  html: `<div style="background:#f59e0b;color:#1c1917;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${n}</div>`,
+  className: '',
+  iconSize: [26, 26],
+  iconAnchor: [13, 13]
+})
+
+const renderMapMarkers = async () => {
+  if (!leafletMap || !leafletInstance) return
+  mapLoading.value = true
+  mapMarkers.forEach(m => m.remove())
+  mapMarkers = []
+  if (mapPolyline) {
+    mapPolyline.remove()
+    mapPolyline = null
+  }
+
+  const entries = currentDayEntries.value
+  const points: [number, number][] = []
+  let notFound = 0
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i]!
+    mapProgress.value = `${i + 1}/${entries.length}`
+    const coord = await geocodeEntry(entry)
+    if (coord) {
+      points.push([coord.lat, coord.lon])
+      const marker = leafletInstance
+        .marker([coord.lat, coord.lon], { icon: numberIcon(points.length) })
+        .addTo(leafletMap)
+        .bindPopup(`${points.length}. ${entry.name}`)
+      mapMarkers.push(marker)
+    } else {
+      notFound++
+    }
+  }
+
+  if (points.length > 1) {
+    mapPolyline = leafletInstance.polyline(points, { color: '#f59e0b', weight: 3 }).addTo(leafletMap)
+  }
+  if (points.length > 0) {
+    leafletMap.fitBounds(points, { padding: [40, 40] })
+  }
+  mapNotFoundCount.value = notFound
+  mapLoading.value = false
+}
+
+const initMap = async () => {
+  if (leafletMap || !mapContainer.value) return
+  const L = await import('leaflet')
+  leafletInstance = L
+
+  await resolveMapDestination()
+
+  let center: [number, number] = [25.033, 121.5654]
+  const destinationContext = mapDestinationContext.value || trip.value?.destination
+  if (destinationContext) {
+    try {
+      const res = await $fetch<{ lat: number; lon: number }>('/api/geocode', {
+        query: { q: destinationContext }
+      })
+      center = [res.lat, res.lon]
+    } catch {
+      // 查不到就用預設中心，不影響後續景點定位
+    }
+  }
+
+  leafletMap = L.map(mapContainer.value).setView(center, 12)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(leafletMap)
+  mapInitialized.value = true
+  await renderMapMarkers()
+}
+
+const ensureMapReady = async () => {
+  await nextTick()
+  if (!mapContainer.value) return
+  if (!mapInitialized.value) {
+    await initMap()
+  } else {
+    await renderMapMarkers()
+  }
+}
+
+watch(activeDay, () => {
+  if (activeTab.value === 'map') ensureMapReady()
+})
+
+watch(activeTab, async (tab, prevTab) => {
+  if (prevTab === 'map' && tab !== 'map' && leafletMap) {
+    leafletMap.remove()
+    leafletMap = null
+    mapInitialized.value = false
+  }
+  if (tab === 'map') await ensureMapReady()
+
   if (tab === 'info' && !weatherFetched.value) {
     weatherFetched.value = true
     fetchWeather()
+  }
+  if (tab === 'info' && !exchangeFetched.value) {
+    exchangeFetched.value = true
+    fetchExchangeRates()
   }
 }, { immediate: true })
 
