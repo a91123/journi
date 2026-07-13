@@ -140,3 +140,26 @@
 - 確認信解析：prompt 要求嚴格 JSON 輸出，避免解析失敗
 - 天氣 API：Open-Meteo（免費，不需要 key）
 - 匯率 API：ExchangeRate-API 免費方案（500次/月）
+
+---
+
+## 程式碼結構：行程頁
+
+`app/pages/trips/[id].vue` 只保留路由/store 取值、Tab 切換、dayList 計算、EditModal 開關，以及地圖 Tab 呼叫桌機 EntryModal／手機 inline 編輯的轉發邏輯。實際內容都在 `app/components/trip/`：
+
+| 檔案 | 內容 |
+|---|---|
+| `ItineraryTab.vue` | 行程 Tab（手機 inline 編輯、桌機拖曳欄位），`defineExpose({ openInlineEdit })` 給地圖 Tab 呼叫 |
+| `MapTab.vue` | 地圖 Tab，含 Leaflet 生命週期、地圖救援機制（拖曳/點地圖校正定位、復原、距離泡泡） |
+| `OverviewTab.vue` | 總覽 Tab |
+| `InfoTab.vue` | 旅伴／天氣／匯率／準備清單 |
+| `Bookings.vue` | 訂單管理中心，InfoTab 內嵌 |
+| `AiDrawer.vue` | AI 推薦抽屜 + 排入行程 dialog |
+| `EditModal.vue` | 編輯旅程 modal |
+| `EntryModal.vue` | 桌機新增/編輯行程 modal，行程 Tab + 地圖 Tab 共用 |
+| `StandbySidebar.vue` | 備用清單桌機側欄 |
+| `StandbyDrawer.vue` | 備用清單手機底部抽屜 |
+
+共用 helper（`categoryEmoji`/`Label`/`Color`、日期格式化、`weatherEmoji`、`guessCurrency`、`sortByTimeThenOrder`）在 `app/utils/tripDisplay.ts`。
+
+天氣／匯率的「已 fetch 過」狀態用 `useState('weather-${tripId}')` / `useState('exchange-rates')`，因為活在 Tab 組件裡、切 Tab 會重新掛載，用 `useState` 才能跨掛載保留。
