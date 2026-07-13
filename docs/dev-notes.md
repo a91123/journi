@@ -1,6 +1,6 @@
 # Dev Notes
 
-## 進行中（2026-07-09）—— 待續
+## 今日進度（2026-07-09 ～ 2026-07-13）—— 全部完成
 
 #### 地圖 3 個遺留 bug（已完成＋已測）
 - 距離泡泡沒跟拖曳更新 → `updateDistanceLabelsAround()` 在 dragend / 點地圖放置後重算相鄰兩段
@@ -9,7 +9,7 @@
 - 踩坑：`mapContainer` 這個 div 交給 Leaflet 完全管理，一開始把 `:class="placingEntry ? ...crosshair"` 直接綁在它身上，Vue patch 時會把 Leaflet 加的 `leaflet-container` 等 class 洗掉整個地圖消失。改成 cursor 綁在外層 wrapper 用 `:deep()` 選 `.leaflet-container`，Leaflet 的容器不再被 Vue 碰
 - Playwright 桌機（1400px）+ 手機（375px）都測過：拖曳、復原、點地圖放置、side card 修正定位、undo 全部通過，console 無 error
 
-#### [id].vue 拆分（2205 行 → 168 行 + 組件，已完成，回歸測試進行到一半）
+#### [id].vue 拆分（2205 行 → 168 行 + 組件，已完成，回歸測試全過）
 拆到 `app/components/trip/`：
 - `EditModal.vue`、`EntryModal.vue`（桌機新增/編輯行程共用，行程 Tab + 地圖 Tab 都會呼叫）
 - `ItineraryTab.vue`（含桌機拖曳欄位、手機 inline 編輯，`defineExpose({ openInlineEdit })` 給地圖 Tab 呼叫）
@@ -277,12 +277,17 @@
 
 ## 明天從哪開始
 
-Phase 1 清單已全部完成（見 2026-07-06 進度）。下一步是 Phase 2：
+Phase 1 全部完成、地圖救援機制 + `[id].vue` 拆分重構也在 2026-07-13 完整測過並上線。詳細清單見 CLAUDE.md 的「Phase 規劃」。下一步排序（Phase 1.5，成本低、投報率高，建議排在 Phase 2 帳號系統之前）：
 
-1. **帳號系統**（Supabase Auth，`nuxt.config.ts` 裡註解的 `@nuxtjs/supabase` 模組先打開）
-2. **行程分享給同行者**
-3. **行事曆同步（Google Calendar）**
-4. **出發提醒通知**
+1. **JSON 匯出／匯入** — 資料只活在 localStorage 的保險絲
+2. **訂單併入行程時間軸** — 補上跟 TripIt 最大的差距
+3. **「今日」自動聚焦** — 旅程進行中打開 App 直接跳當天
+4. **花費記錄對照預算** — 決定 `Trip.budget` 欄位到底要不要做記帳
+5. **唯讀分享連結** — Phase 2 分享功能的輕量前置
+
+之後才進 **Phase 2**（帳號系統 Supabase Auth、行程分享、Google Calendar 同步、出發提醒），且做帳號系統時要把 Gemini API Key 一併搬到 server 端。
+
+順手可做：`Vant` 沒真的用到任何元件，可以移除；`server/api/recommendations.post.js` 是唯一沒轉 TS 的 server 檔案。
 
 ---
 
