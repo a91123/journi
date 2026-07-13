@@ -1,5 +1,44 @@
 # Dev Notes
 
+## 進行中（2026-07-09）—— 待續
+
+#### 地圖 3 個遺留 bug（已完成＋已測）
+- 距離泡泡沒跟拖曳更新 → `updateDistanceLabelsAround()` 在 dragend / 點地圖放置後重算相鄰兩段
+- 手動點地圖設定位置 → 新增 `placingEntry` 狀態機：側欄「📍 點地圖修正定位」或底下「定位不到」清單點名稱進入放置模式，地圖 click handler 寫入座標
+- 拖曳/點地圖後復原 → `lastPinMove` 記上一個座標，「↩ 復原」按鈕還原並清空
+- 踩坑：`mapContainer` 這個 div 交給 Leaflet 完全管理，一開始把 `:class="placingEntry ? ...crosshair"` 直接綁在它身上，Vue patch 時會把 Leaflet 加的 `leaflet-container` 等 class 洗掉整個地圖消失。改成 cursor 綁在外層 wrapper 用 `:deep()` 選 `.leaflet-container`，Leaflet 的容器不再被 Vue 碰
+- Playwright 桌機（1400px）+ 手機（375px）都測過：拖曳、復原、點地圖放置、side card 修正定位、undo 全部通過，console 無 error
+
+#### [id].vue 拆分（2205 行 → 168 行 + 組件，已完成，回歸測試進行到一半）
+拆到 `app/components/trip/`：
+- `EditModal.vue`、`EntryModal.vue`（桌機新增/編輯行程共用，行程 Tab + 地圖 Tab 都會呼叫）
+- `ItineraryTab.vue`（含桌機拖曳欄位、手機 inline 編輯，`defineExpose({ openInlineEdit })` 給地圖 Tab 呼叫）
+- `OverviewTab.vue`、`MapTab.vue`（地圖邏輯整包搬過去，含上面三個 bug 修法）
+- `InfoTab.vue`（旅伴／天氣／匯率／準備清單）+ `Bookings.vue`（訂單管理獨立出來，InfoTab 內嵌）
+- `AiDrawer.vue`（AI 推薦抽屜 + 排入行程 dialog）
+- `StandbySidebar.vue`（桌機左側欄）、`StandbyDrawer.vue`（手機底部抽屜）
+- 共用 helper 抽到 `app/utils/tripDisplay.ts`（categoryEmoji/Label/Color、formatDate 系列、weatherEmoji、guessCurrency、sortByTimeThenOrder）
+- 天氣/匯率 fetch 狀態從原本掛在 `[id].vue` 的 ref 改成 `useState('weather-${tripId}')` / `useState('exchange-rates')`，因為現在活在 `InfoTab.vue` 裡，切 Tab 會重新掛載組件，用 useState 才能保留「已 fetch 過」的狀態不重打 API
+- `[id].vue` 現在只剩：路由/store 取 trip、tabs 切換、dayList computed、EditModal 開關、EntryModal 和 ItineraryTab 的 ref 轉發（給地圖 Tab 的「編輯這筆行程」用）
+- typecheck 通過（0 errors）
+
+**回歸測試進度**（額度用完中斷，下次接續）：
+- ✅ 桌機：Day 1/2/3 顯示、備用清單拖曳到 Day 2 欄位（clone 成功、standby 清空、itinerary 寫入）
+- ✅ 桌機：點行程卡開 EntryModal，name 值正確帶入
+- ✅ 桌機：地圖 Tab 點 pin 開側欄 → 點「編輯這筆行程」→ EntryModal 正確開啟且在最上層
+- ⬜ **資訊 Tab 整個沒測到**：旅伴新增/刪除、訂單（文字解析／PDF＋QR／手動新增／filter tags）、天氣卡片、匯率換算＋方向切換、準備清單勾選 — 這些邏輯搬進 `InfoTab.vue`/`Bookings.vue` 後完全没跑過一次
+- ⬜ AI 推薦抽屜（`AiDrawer.vue`）：開抽屜、換類別、換一批、「排入」開 schedule dialog、選 Day 直接排入 — 抽屜從 `ItineraryTab.vue` 內部搬到獨立組件後沒驗證
+- ⬜ 手機版整體：Tab 切換（行程/總覽/地圖/資訊 4 個都要點過一次）、備用清單底部抽屜開合、`StandbyDrawer.vue` 排入某天
+- ⬜ 旅程編輯 Modal（`EditModal.vue`）：改日期縮短天數 → displaced count 提示、儲存後 activeDay 重置
+
+**下次接續步驟**：
+1. dev server 開著（`npm run dev`，目前跑在背景 task id 可能已失效，需要重開 `npm run dev`）
+2. 用上面 seed script 灌測試資料到 localStorage（trip id `maptest1`，見本檔案 git history 或直接用「新增旅程」手動建一個）
+3. 依「回歸測試進度」清單裡的 ⬜ 項目逐一跑過，尤其訂單/AI 抽屜這兩個搬動最大的區塊
+4. 全過後才算任務完整結束，記得同步勾掉 CLAUDE.md 的完成清單
+
+---
+
 ## 今日進度（2026-07-06）
 
 #### AI 推薦卡「排入行程」dialog
@@ -63,6 +102,27 @@
 - 座標查到後存回 `TripEntry.lat/lon`（store 新增 `setEntryLocation` action），下次開地圖不用重查，大幅加速也減少 Nominatim 呼叫
 - marker 改用編號 `divIcon`（1、2、3...），不用點開彈窗也看得出行程順序，順便不用再處理 Leaflet 預設圖示在 Vite 打包的路徑問題
 
+#### 地圖檢視：五項體驗優化
+- **重設縮放**：地圖右上角加圓形按鈕，點了重新 `fitBounds` 回「剛好看到當天所有景點」的大小（存 `mapFitPoints` 這個 ref 記住上次範圍）
+- **點 pin 顯示側欄詳情**：拿掉原本的小彈窗，改成點 pin 後在旁邊（桌機側邊欄、手機地圖下方）顯示卡片，內容是 `TripEntry` 已有的 time/note/mapUrl，不是另外生資料
+- **Pin 可拖曳修正定位**：marker 設 `draggable: true`，拖曳結束存回 `entry.lat/lon`（`setEntryLocation`）+ 更新 cache + 重畫折線，解決地名定位不準時沒有補救方式的問題
+- **用 Google Maps 開啟整天路線**：把當天已定位的座標串成 Google Maps 多站導航連結（origin/destination/waypoints），按鈕開新分頁；我們的地圖只負責看全貌，真的走路導航交給 Google Maps
+- **側欄跳回行程編輯**：側欄卡片加「✎ 編輯這筆行程」，依螢幕寬度（`matchMedia('(min-width: 1024px)')`）決定開桌機 modal 還是切到行程 Tab 開手機 inline 編輯
+- **站間直線距離**：折線中點加距離標籤（Haversine 公式算，< 1km 顯示公尺），UI 明確標註「非實際路徑」避免誤判成走路時間
+
+#### 地圖檢視：五項優化的 Playwright 實測 + 修復
+用 Playwright MCP 接上真實瀏覽器實測（建旅程、填 Day 1 三筆行程、逐項操作地圖 Tab），發現並修掉以下問題：
+
+- **踩坑（編輯 modal 被地圖蓋住，最關鍵）**：點側欄「編輯這筆行程」，modal 背景遮罩有出現，但白色卡片內容完全看不到。根因是 `.leaflet-container` 只有 `position: relative` 沒設 `z-index`，沒有建立獨立堆疊環境，導致 Leaflet 內部 pane/控制項（z-index 200~1000）逃出容器蓋過同層的 modal（z-50）跟空狀態遮罩。**修法**：幫地圖容器 div 補上 `z-0`，讓 Leaflet 內部元素關進自己的堆疊環境，一次解決 modal 跟空狀態遮罩都被蓋住的問題
+- **踩坑（空狀態文字看不到）**：「🗺️ 這天還沒有行程」的遮罩同樣被地圖蓋住，跟上面同一根因，同一個修法解決
+- **踩坑（重設縮放按鈕不明顯）**：按鈕功能正常，但白底細線 icon 跟地圖淡色背景幾乎融為一體，容易被忽略。**修法**：icon 加粗加大（stroke-width 2→2.5、w-4→w-5）、陰影加深（shadow-sm→shadow-md）、邊框加深
+- **踩坑（側欄開啟時景點被推出視野）**：點 pin 開側欄詳情卡會讓地圖變窄，但 Leaflet 不會自動感知容器變小，沒有重新 `fitBounds`，導致較遠的景點被擠到看不到的地方。**修法**：新增 `watch(selectedMapEntry, ...)`，側欄開關時呼叫 `leafletMap.invalidateSize()` 並重新 `fitBounds`
+- **踩坑（距離標籤不夠像「泡泡」）**：站間距離標籤原本 padding 太小、又是全圓 pill 形狀，文字幾乎頂到邊界，看起來不像有明顯背景的泡泡。**修法**：改用圓角矩形（非全圓）、加大 padding、補 `display:inline-block` + `line-height:1` 避免行高影響版面、加深文字顏色與陰影對比
+- **踩坑（地圖初始化瞬間空白）**：`initMap` 一開始要跑 `normalize-place` + 目的地 geocode 兩支 API，這段時間 `mapLoading` 還是 false，畫面上什麼都不會顯示。**修法**：`initMap` 一進來就把 `mapLoading` 設 true，讓既有的轉圈遮罩涵蓋整個初始化流程，不只有畫 marker 那段
+- 確認没問題的部分：地圖正確置中、pin 編號定位、拖曳定位存檔且切天數後仍保留、Google Maps 整天路線連結座標與順序正確、Console 無 error、API 呼叫全部 200
+
+**同場踩坑**：測試中途編輯了 `.vue` 檔案，Vite HMR 熱重載讓舊的 Leaflet 實例沒清乾淨（就是踩坑1白圖的根因），造成地圖底圖暫時消失；重新整理頁面後恢復正常，確認只是開發時編輯檔案的副作用，不是使用者會遇到的情況。
+
 ---
 
 ## 今日進度（2026-06-24）
@@ -103,6 +163,28 @@
 ---
 
 ## 待實作功能
+
+### 地圖檢視：拖曳 pin 時距離泡泡沒跟著更新（bug）
+- `dragend` handler 只更新了折線（`mapPolyline.setLatLngs`）跟存座標，沒有同步更新 `mapDistanceLabels` 的位置跟文字
+- 拖完後距離泡泡還停在原本中點、顯示拖曳前的舊距離，沒有跟著新位置重算
+- 修法：`dragend` 時比照 `renderMapMarkers` 重新算受影響的相鄰兩段距離、更新對應 label 的座標跟文字（或偷懶直接整段重跑 `renderMapMarkers`）
+
+### 地圖檢視：手動點地圖設定位置（優先）
+- geocode 查不到、或查到但明顯錯誤（如「關西」誤判成別的國家殘留案例）時，目前只能靠拖曳一個已經放錯的 pin 來修正
+- 改成：讓使用者直接在地圖上點一下就能新增/校正該筆行程的座標，對「定位不到」跟「查到別的地方」兩種情況都是更直覺的救援手段
+
+### 地圖檢視：拖曳 pin 復原機制
+- 拖曳修正定位後沒有「恢復原本定位」的按鈕，手滑拖錯只能再拖一次
+- 加小小的 undo/復原入口，降低使用者「怕拖錯不敢用」的心理障礙
+
+### 地圖檢視：手機版實測
+- 這次 Playwright 測試全程在桌機視窗（1512px）跑，側欄變成「地圖下方」的手機版排版沒有實際驗證過
+- 需確認這次修的幾個 z-index／fitBounds bug 在手機版一樣正常
+
+### 地圖檢視：離線圖磚快取（排之後 sprint，工程量較大）
+- 使用情境是出國旅遊，當下多半沒有穩定網路，OSM 圖磚目前每次都要重新下載
+- 若能在有網路時（例如飯店 wifi）把當天圖磚快取起來，出門在路上沒訊號時地圖還能看，跟「旅遊管理中心」定位很搭
+- 需要 Service Worker / 快取策略，工程量比上面三項大，不急著做
 
 ### ~~AI 推薦卡「排入行程」dialog~~ ✅ 已完成（2026-07-06）
 - 點推薦卡「排入」開 dialog，可選「加入備用」或選 Day N（可選填時間）直接寫入 itinerary
