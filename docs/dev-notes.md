@@ -1,5 +1,21 @@
 # Dev Notes
 
+## 今日進度（2026-07-17 ～ 2026-07-20）—— 全部完成
+
+#### 全站視覺重新設計：Airmail Manifest（已完成）
+- 新增 `tailwind.config.ts` + `app/assets/css/main.css`：`paper`（米白紙感）/`ink`（深藍墨水）/`airmail-red`·`airmail-blue`（航空信封紅藍雙色，紅=主要動作、藍=AI/資訊/選取狀態）/`stamp-gold`（郵戳金，訂單/確認狀態）
+- 字型：Space Grotesk（標題）+ IBM Plex Mono（日期/天數/金額等資料）+ Inter（內文），透過 `nuxt.config.ts` 的 `app.head.link` 載入 Google Fonts
+- 簽名元素：`.airmail-stripe`（紅藍斜紋，用在頁首下緣、旅程卡側邊、表單卡上緣）+ `.perforated-v`（票根撇線分隔）
+- 首頁旅程卡改登機證票根樣式、建立旅程頁改 manifest 票券樣式；旅程詳情頁全部 Tab（行程/總覽/地圖/資訊）跟所有彈窗、抽屜、備用清單、`MapTab.vue` 的 Leaflet marker/polyline 顏色都套用新色票
+- `categoryColor()`（景點/美食/交通等 6 色標籤）維持原本功能性色票不變，跟品牌色分開處理
+- 已測：Playwright 截圖確認首頁、建立旅程頁、旅程詳情頁行程 Tab／資訊 Tab；地圖 Tab 因 Leaflet 動畫讓截圖工具逾時，改用 accessibility snapshot 確認結構正常
+
+#### 「今日」自動聚焦（已完成＋已測）
+- `trips/[id].vue` 新增 `focusToday()`：組本地年/月/日字串跟 `dayList` 比對，`onMounted` 時若今天落在旅程範圍內就把 `activeDay` 設到對應 Day
+- 找不到今天（旅程未開始/已結束）則維持原本的 `activeDay`；只有原值已超出新 `dayList` 長度時才退回 Day 1（沿用原本「日期縮短後 index 越界」的保護邏輯）
+- 編輯旅程日期存檔（`TripEditModal` 的 `saved` 事件）也改呼叫 `focusToday()`，取代原本寫死的 `activeDay = 0`
+- 已測：建立一趟涵蓋今天的 7 天旅程，確認手機版行程 Tab 直接開在正確的 Day（而非 Day 1）；typecheck 通過（0 errors）
+
 ## 今日進度（2026-07-09 ～ 2026-07-13）—— 全部完成
 
 #### 訂單併入行程時間軸（已完成＋已測）

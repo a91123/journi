@@ -26,7 +26,7 @@
       :trip="trip"
       :show="showEditModal"
       @close="showEditModal = false"
-      @saved="activeDay = 0"
+      @saved="focusToday"
     />
 
     <!-- Tab (手機) -->
@@ -121,6 +121,7 @@ const { loadKey } = useGeminiKey()
 onMounted(() => {
   tripsStore.load()
   loadKey()
+  focusToday()
 })
 const trip = computed(() => tripsStore.getTrip(route.params.id as string))
 
@@ -152,6 +153,19 @@ const dayList = computed<DayInfo[]>(() => {
     }
   })
 })
+
+// 旅程進行中打開 App：直接跳到今天的行程 Tab，而不是停在 Day 1
+const focusToday = () => {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayIndex = dayList.value.findIndex(d => d.date === todayStr)
+  if (todayIndex !== -1) {
+    activeDay.value = todayIndex
+  } else if (activeDay.value >= dayList.value.length) {
+    // 日期縮短後原本的 Day 可能已經不存在，退回 Day 1 避免 index 越界
+    activeDay.value = 0
+  }
+}
 
 // 跨組件互動：地圖 Tab 的「編輯這筆行程」
 // 桌機開共用的 EntryModal；手機切回行程 Tab 開 inline 編輯

@@ -106,7 +106,7 @@
 ### Phase 1.5（低成本高價值，建議排在 Phase 2 帳號系統之前）
 - [ ] **JSON 匯出／匯入** — 目前資料只活在單一瀏覽器的 localStorage，換裝置或清瀏覽器資料就整個消失（含訂單、護照號碼備註）。在 Supabase 上線前先做一個保險絲，半天工，投報率最高
 - [x] **訂單併入行程時間軸**（2026-07-13 完成）— `trip.bookings` 原本只活在資訊 Tab，跟 `itinerary` 是平行世界。做法：`app/utils/tripDisplay.ts` 新增 `getBookingMarkersForDay()`，把訂單依 `startDate`/`endDate` 轉成當天的唯讀節點（hotel/flight 起訖不同天會各顯示一個「入住/退房」「起飛/抵達」）。Overview Tab（純顯示、無拖曳）跟行程項目按時間完整合併排序；行程 Tab 因為桌機欄位有拖曳排序，唯讀訂單節點改用固定在欄位最上方的「訂單節點區」呈現，不混進可拖曳的 itinerary 陣列，避免影響 SortableJS 邏輯。點節點會切到「資訊」Tab 看完整訂單
-- [ ] **「今日」自動聚焦** — 旅程進行中那幾天，打開 App 應直接跳到當天的行程 Tab，而不是停在 Day 1／上次瀏覽的 Tab。出國當下才是最需要這功能的時刻
+- [x] **「今日」自動聚焦**（2026-07-20 完成）— `trips/[id].vue` 新增 `focusToday()`：用本地年/月/日組字串跟 `dayList` 比對，`onMounted` 時若今天落在旅程範圍內就把 `activeDay` 設到對應 Day；找不到（旅程未開始/已結束）則維持原值，除非原本的 `activeDay` 已超出新的 `dayList` 長度才退回 Day 1（保留原本「日期縮短後 index 越界」的保護）。編輯旅程日期存檔後（`TripEditModal` 的 `saved` 事件）也改呼叫 `focusToday()` 取代原本寫死的 `activeDay = 0`
 - [ ] **花費記錄對照預算** — `Trip.budget` 欄位存了之後只在首頁卡片露臉一次，沒有任何後續使用。要嘛做簡單記帳（花費 vs 預算進度條），要嘛乾脆拿掉這個欄位，目前狀態最尷尬
 - [ ] **唯讀分享連結（Phase 2 分享的輕量前置）** — 把行程序列化成連結或匯出 PDF，不用等 Supabase 帳號系統就能「把行程給媽媽看」
 
