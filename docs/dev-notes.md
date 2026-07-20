@@ -16,6 +16,16 @@
 - 編輯旅程日期存檔（`TripEditModal` 的 `saved` 事件）也改呼叫 `focusToday()`，取代原本寫死的 `activeDay = 0`
 - 已測：建立一趟涵蓋今天的 7 天旅程，確認手機版行程 Tab 直接開在正確的 Day（而非 Day 1）；typecheck 通過（0 errors）
 
+#### JSON 匯出／匯入（已完成＋已測）
+- 首頁「00 TRIPS」旁加「匯出備份」「匯入備份」兩個小連結（低調的工具性動作，不搶 `+ 新增` 的視覺重量）
+- 匯出：`tripsStore.trips` 整包 `JSON.stringify` 成 `journi-backup-{日期}.json` 觸發瀏覽器下載
+- 匯入：讀檔 → `isValidTrip()` 檢查基本欄位型別 → `confirm()` 顯示筆數請使用者確認 → `tripsStore.importTrips()` 以 `id` 去重（已存在的旅程不覆蓋，只補上沒有的）→ 顯示「新增 N 趟，跳過 M 趟重複」或錯誤訊息
+- 已測：Playwright 跑過三條路徑——匯出後檢查 JSON 內容正確、匯入含 1 筆重複+1 筆新資料確認「新增 1 趟，跳過 1 趟重複」且不重複的那筆正確出現、匯入格式錯誤的檔案確認顯示錯誤訊息且資料未被破壞；typecheck 通過（0 errors）
+
+#### 地圖目的地正規化改用 useState（順手修）
+- 問題：地圖 Tab 是條件渲染（`v-else-if`），切走再切回來組件會重新掛載，原本 `mapDestinationContext` 是普通 `ref('')`，每次重新掛載都會重打一次 Gemini `/api/normalize-place`，浪費免費額度（`gemini-2.5-flash-lite` 免費層只有 20 次/天）
+- 修法：改用 `useState(`map-destination-${trip.id}`, ...)`，跟天氣/匯率的快取模式一致，同一趟旅程同一個瀏覽器分頁只打一次
+
 ## 今日進度（2026-07-09 ～ 2026-07-13）—— 全部完成
 
 #### 訂單併入行程時間軸（已完成＋已測）

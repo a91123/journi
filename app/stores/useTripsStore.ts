@@ -272,6 +272,15 @@ export const useTripsStore = defineStore('trips', {
       if (!trip) return
       const companions = (trip.companions || []).filter(c => c.id !== companionId)
       this.updateTrip(tripId, { companions })
+    },
+
+    // JSON 備份匯入：以 id 去重，已存在的旅程不覆蓋，只補上沒有的
+    importTrips(importedTrips: Trip[]): { added: number; skipped: number } {
+      const existingIds = new Set(this.trips.map(t => t.id))
+      const toAdd = importedTrips.filter(t => !existingIds.has(t.id))
+      this.trips = [...toAdd, ...this.trips]
+      this.save()
+      return { added: toAdd.length, skipped: importedTrips.length - toAdd.length }
     }
   }
 })

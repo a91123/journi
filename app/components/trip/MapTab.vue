@@ -136,7 +136,9 @@ const mapContainer = ref<HTMLElement | null>(null)
 const mapLoading = ref(false)
 const mapProgress = ref('')
 const mapNotFoundCount = ref(0)
-const mapDestinationContext = ref('')
+// useState 而非 ref：地圖 Tab 是條件渲染，切走再切回來組件會重新掛載，
+// 用 ref 每次都要重打一次 Gemini 正規化 API；useState 讓同一趟旅程只打一次
+const mapDestinationContext = useState(`map-destination-${props.trip.id}`, () => '')
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let leafletMap: any = null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
