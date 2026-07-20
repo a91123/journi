@@ -6,61 +6,68 @@
         <!-- 半透明遮罩 -->
         <div class="absolute inset-0 bg-black/20" @click="close"></div>
         <!-- 抽屜本體 -->
-        <div class="relative w-96 h-full bg-white shadow-2xl flex flex-col overflow-hidden">
+        <div class="relative w-96 h-full bg-paper-raised shadow-2xl flex flex-col overflow-hidden">
           <!-- 抽屜 Header -->
-          <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between flex-shrink-0">
+          <div class="px-5 py-4 border-b border-stub/70 flex items-center justify-between flex-shrink-0">
             <div>
-              <p class="font-bold text-stone-900 text-base">AI 景點推薦</p>
-              <p class="text-xs text-stone-400 mt-0.5">{{ trip.destination }}</p>
+              <p class="font-display font-bold text-ink text-base">✨ AI 景點推薦</p>
+              <p class="text-xs text-ink-faint mt-0.5">{{ trip.destination }}</p>
             </div>
-            <button @click="close" class="text-stone-300 hover:text-stone-600 text-2xl leading-none transition-colors">×</button>
+            <button @click="close" class="text-ink-faint/60 hover:text-ink-faint text-2xl leading-none transition-colors">×</button>
           </div>
           <!-- 類別篩選 -->
-          <div class="px-5 py-3 flex gap-2 flex-shrink-0 border-b border-stone-100">
+          <div class="px-5 py-3 flex gap-2 flex-shrink-0 border-b border-stub/70">
             <button
               v-for="cat in aiCategories"
               :key="cat.key"
               @click="aiCategory = cat.key"
               class="text-xs px-3 py-1.5 rounded-full border transition-all"
               :class="aiCategory === cat.key
-                ? 'bg-stone-900 border-stone-900 text-white font-semibold'
-                : 'border-stone-200 text-stone-500 hover:border-stone-400'"
+                ? 'bg-airmail-blue border-airmail-blue text-paper-raised font-semibold'
+                : 'border-stub text-ink-soft hover:border-airmail-blue/40'"
             >{{ cat.label }}</button>
           </div>
           <!-- 內容 -->
           <div class="flex-1 overflow-y-auto px-5 py-4">
             <div v-if="aiLoading" class="flex flex-col items-center justify-center h-40 gap-3">
-              <div class="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-              <p class="text-sm text-stone-400">正在推薦中…</p>
+              <div class="w-6 h-6 border-2 border-airmail-blue border-t-transparent rounded-full animate-spin"></div>
+              <p class="text-sm text-ink-faint">正在推薦中…</p>
             </div>
-            <div v-else-if="currentBatch.length === 0" class="flex flex-col items-center justify-center h-40 gap-3">
-              <p class="text-stone-400 text-sm">點擊開始獲取推薦</p>
+            <div v-else-if="aiError" class="flex flex-col items-center justify-center h-40 gap-3 text-center px-4">
+              <p class="text-airmail-red/80 text-sm">{{ aiError }}</p>
               <button
                 @click="fetchRecommendations"
-                class="bg-amber-400 hover:bg-amber-500 text-stone-900 px-5 py-2 rounded-xl text-sm font-bold transition-colors"
+                class="bg-airmail-blue hover:bg-airmail-blue/90 text-paper-raised px-5 py-2 rounded-xl text-sm font-bold transition-colors"
+              >重試</button>
+            </div>
+            <div v-else-if="currentBatch.length === 0" class="flex flex-col items-center justify-center h-40 gap-3">
+              <p class="text-ink-faint text-sm">點擊開始獲取推薦</p>
+              <button
+                @click="fetchRecommendations"
+                class="bg-airmail-blue hover:bg-airmail-blue/90 text-paper-raised px-5 py-2 rounded-xl text-sm font-bold transition-colors"
               >開始推薦</button>
             </div>
             <div v-else class="space-y-3">
               <div
                 v-for="item in currentBatch"
                 :key="item.id"
-                class="border border-stone-100 rounded-xl p-4 hover:border-stone-200 hover:shadow-sm transition-all"
+                class="border border-stub/70 rounded-xl p-4 hover:border-airmail-blue/30 hover:shadow-sm transition-all"
               >
                 <div class="flex items-start justify-between gap-3 mb-2">
-                  <p class="font-semibold text-stone-800 text-sm leading-snug">{{ item.name }}</p>
+                  <p class="font-semibold text-ink text-sm leading-snug">{{ item.name }}</p>
                   <button
                     @click="openSchedule(item)"
                     :disabled="addedIds.includes(item.id)"
                     class="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-                    :class="addedIds.includes(item.id) ? 'bg-stone-100 text-stone-400 cursor-default' : 'bg-amber-400 hover:bg-amber-500 text-stone-900'"
+                    :class="addedIds.includes(item.id) ? 'bg-stub/40 text-ink-faint cursor-default' : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
                   >{{ addedIds.includes(item.id) ? '✓ 已加入' : '排入' }}</button>
                 </div>
-                <p class="text-xs text-stone-400 leading-relaxed">{{ item.description }}</p>
-                <p class="text-xs text-stone-300 mt-2">⏱ 約 {{ item.duration }} 小時</p>
+                <p class="text-xs text-ink-faint leading-relaxed">{{ item.description }}</p>
+                <p class="text-xs text-ink-faint/60 mt-2 font-mono">⏱ 約 {{ item.duration }} 小時</p>
               </div>
               <div class="flex justify-between items-center pt-1">
-                <button @click="nextBatch" class="text-sm text-stone-400 hover:text-stone-700 transition-colors">換一批 →</button>
-                <span class="text-xs text-stone-300">{{ batchIndex * 5 + 1 }}–{{ Math.min((batchIndex + 1) * 5, allRecommendations.length) }} / {{ allRecommendations.length }}</span>
+                <button @click="nextBatch" class="text-sm text-ink-faint hover:text-ink transition-colors">換一批 →</button>
+                <span class="text-xs text-ink-faint/60 font-mono">{{ batchIndex * 5 + 1 }}–{{ Math.min((batchIndex + 1) * 5, allRecommendations.length) }} / {{ allRecommendations.length }}</span>
               </div>
             </div>
           </div>
@@ -75,19 +82,19 @@
     class="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-4"
     @click.self="closeSchedule"
   >
-    <div class="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
+    <div class="bg-paper-raised rounded-2xl w-full max-w-sm p-5 space-y-4 border border-stub">
       <div>
-        <p class="font-bold text-slate-800 text-base leading-snug">{{ schedulingItem.name }}</p>
-        <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ schedulingItem.description }}</p>
+        <p class="font-display font-bold text-ink text-base leading-snug">{{ schedulingItem.name }}</p>
+        <p class="text-xs text-ink-faint mt-1 leading-relaxed">{{ schedulingItem.description }}</p>
       </div>
 
       <button
         @click="addFromAi(schedulingItem); closeSchedule()"
-        class="w-full py-2.5 rounded-xl text-sm font-bold bg-stone-100 hover:bg-stone-200 text-slate-700 transition-colors"
+        class="w-full py-2.5 rounded-xl text-sm font-bold bg-stub/30 hover:bg-stub/50 text-ink-soft transition-colors"
       >加入備用</button>
 
       <div>
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">或直接排入</p>
+        <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest mb-2">或直接排入</p>
         <div class="flex flex-wrap gap-2">
           <button
             v-for="(day, i) in dayList"
@@ -95,14 +102,14 @@
             @click="scheduleDay = day.date"
             class="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors border"
             :class="scheduleDay === day.date
-              ? 'bg-amber-400 border-amber-400 text-slate-900'
-              : 'bg-white border-stone-200 hover:border-amber-300 text-slate-600'"
+              ? 'bg-ink border-ink text-paper'
+              : 'bg-paper border-stub hover:border-airmail-blue/40 text-ink-soft'"
           >Day {{ i + 1 }} {{ day.label }}</button>
         </div>
       </div>
 
       <div v-if="scheduleDay">
-        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">時間（選填）</label>
+        <label class="block text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest mb-2">時間（選填）</label>
         <TimePicker v-model="scheduleTime" />
       </div>
 
@@ -111,9 +118,9 @@
           @click="scheduleAiItem"
           :disabled="!scheduleDay"
           class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors"
-          :class="scheduleDay ? 'bg-amber-400 hover:bg-amber-500 text-slate-900' : 'bg-stone-100 text-slate-300 cursor-not-allowed'"
+          :class="scheduleDay ? 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised' : 'bg-stub/40 text-ink-faint cursor-not-allowed'"
         >排入行程</button>
-        <button @click="closeSchedule" class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors">取消</button>
+        <button @click="closeSchedule" class="px-5 py-2.5 text-ink-faint hover:text-ink-soft text-sm transition-colors">取消</button>
       </div>
     </div>
   </div>
@@ -147,6 +154,7 @@ const aiCategories = [
 ]
 const aiCategory = ref('all')
 const aiLoading = ref(false)
+const aiError = ref('')
 const allRecommendations = ref<AiRecommendation[]>([])
 const batchIndex = ref(0)
 const addedIds = ref<string[]>([])
@@ -160,6 +168,7 @@ const currentBatch = computed(() => {
 
 const fetchRecommendations = async () => {
   aiLoading.value = true
+  aiError.value = ''
   batchIndex.value = 0
   addedIds.value = []
   try {
@@ -168,8 +177,9 @@ const fetchRecommendations = async () => {
       body: { destination: props.trip.destination, category: aiCategory.value, apiKey: geminiKey.value }
     })
     allRecommendations.value = res.attractions
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    aiError.value = err.data?.statusMessage || '推薦失敗，請稍後再試'
   } finally {
     aiLoading.value = false
   }

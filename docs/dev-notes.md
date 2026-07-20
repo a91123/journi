@@ -2,6 +2,26 @@
 
 ## 今日進度（2026-07-09 ～ 2026-07-13）—— 全部完成
 
+#### 訂單併入行程時間軸（已完成＋已測）
+- `app/utils/tripDisplay.ts` 新增 `getBookingMarkersForDay()`：依訂單 `startDate`/`endDate` 算出當天的唯讀節點（hotel/flight 起訖不同天各顯示「入住/退房」「起飛/抵達」一個節點）
+- `OverviewTab.vue`（手機＋桌機皆無拖曳）：訂單節點跟行程項目按時間完整合併排序、同一個列表顯示
+- `ItineraryTab.vue`：手機版 inline 列表、桌機拖曳欄位都在每天最上方加「訂單節點區」，唯讀、視覺上用琥珀色虛線框區分，**不混進可拖曳的 itinerary 陣列**（桌機欄位是 VueDraggable 綁 `columns[colIdx].entries`，混進去會打亂 SortableJS 邏輯，所以選擇固定區塊而非跟行程項目真正按時間交錯）
+- 點訂單節點會 emit `goto-info`，一路轉發到 `[id].vue` 把 `activeTab` 切到「資訊」，直接看到完整訂單卡片
+- 已測：Playwright 手動新增一筆機場接送訂單（Day 1, 2026-07-15），確認桌機行程 Tab、手機行程 Tab、總覽 Tab 三處都正確顯示節點，點擊都能跳轉到資訊 Tab；typecheck 通過（0 errors）
+- 詳細規劃記錄在 `CLAUDE.md` 的「Phase 1.5」清單（已勾選）
+
+#### Phase 2 帳號系統規劃（只規劃，未動工）
+- 完整方案寫在 `CLAUDE.md` → Phase 2（給親友用）→「Phase 2 帳號系統規劃」小節
+- 核心決定：Trip 整包存 JSONB（不拆關聯表）、Google OAuth 優先登入、local-first + 背景同步（不整批改 await API）、登入後 Gemini key 預設吃 server 端、唯讀分享連結先於帳號協作編輯
+- 下次要動工時先讀那節，裡面有建議的 6 步實作順序
+
+#### AI Key 移到全域 header + AI 失敗提示（已完成＋已測）
+- 問題：AI Key 設定按鈕原本只在首頁（`index.vue`），進到行程頁面想用 AI 推薦才發現沒設定 key 要先跳回首頁很麻煩
+- 修法：把 key 按鈕 + modal 從 `index.vue` 搬到 `app/layouts/default.vue` 的 header，`loadKey()` 也改在 layout `onMounted` 呼叫，所有頁面（含行程內的任何 Tab）都能直接開 key modal
+- 問題二：AI 推薦（`AiDrawer.vue`）、準備清單生成（`InfoTab.vue`）失敗時原本只有 `console.error`，畫面上完全沒提示，使用者看到的是「一直轉圈然後突然沒反應」
+- 修法：兩處都比照既有天氣查詢的 error 模式，新增 `aiError`/`packingError` state，抓 `err.data?.statusMessage`（後端沒設 key 時會回「請先設定 Gemini API Key」）顯示在原本的空狀態位置，AI 推薦抽屜加「重試」按鈕
+- 已測：Playwright `page.route()` mock `/api/recommendations` 回 400 確認錯誤訊息正確顯示；正常流程（有 fallback server key）跑一次推薦＋排入行程沒有 regression
+
 #### 地圖 3 個遺留 bug（已完成＋已測）
 - 距離泡泡沒跟拖曳更新 → `updateDistanceLabelsAround()` 在 dragend / 點地圖放置後重算相鄰兩段
 - 手動點地圖設定位置 → 新增 `placingEntry` 狀態機：側欄「📍 點地圖修正定位」或底下「定位不到」清單點名稱進入放置模式，地圖 click handler 寫入座標

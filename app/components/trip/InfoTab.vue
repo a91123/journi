@@ -4,35 +4,35 @@
     <!-- 旅伴 -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">旅伴</p>
+        <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest">旅伴</p>
         <button
           @click="showAddCompanion = !showAddCompanion"
           class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
-          :class="showAddCompanion ? 'bg-slate-100 text-slate-500' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          :class="showAddCompanion ? 'bg-stub/40 text-ink-soft' : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
         >{{ showAddCompanion ? '收起' : '+ 新增' }}</button>
       </div>
 
-      <div v-if="showAddCompanion" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-2 mb-3">
-        <input v-model="newCompanion.name" placeholder="姓名" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
-        <input v-model="newCompanion.note" placeholder="備註（如：護照號碼、生日，選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+      <div v-if="showAddCompanion" class="bg-paper-raised rounded-2xl border border-stub/70 p-4 space-y-2 mb-3">
+        <input v-model="newCompanion.name" placeholder="姓名" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue" />
+        <input v-model="newCompanion.note" placeholder="備註（如：護照號碼、生日，選填）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue" />
         <button
           @click="addCompanion"
           :disabled="!newCompanion.name.trim()"
           class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
-          :class="!newCompanion.name.trim() ? 'bg-stone-100 text-slate-400 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          :class="!newCompanion.name.trim() ? 'bg-stub/40 text-ink-faint cursor-not-allowed' : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
         >新增旅伴</button>
       </div>
 
-      <div v-if="tripCompanions.length === 0 && !showAddCompanion" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+      <div v-if="tripCompanions.length === 0 && !showAddCompanion" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">
         還沒有旅伴，點「+ 新增」開始
       </div>
       <div v-else class="space-y-2">
-        <div v-for="c in tripCompanions" :key="c.id" class="bg-white rounded-2xl border border-stone-100 p-3 flex items-center justify-between gap-2">
+        <div v-for="c in tripCompanions" :key="c.id" class="bg-paper-raised rounded-2xl border border-stub/70 p-3 flex items-center justify-between gap-2">
           <div class="min-w-0">
-            <p class="font-semibold text-slate-800 text-sm">{{ c.name }}</p>
-            <p v-if="c.note" class="text-xs text-slate-400 truncate">{{ c.note }}</p>
+            <p class="font-semibold text-ink text-sm">{{ c.name }}</p>
+            <p v-if="c.note" class="text-xs text-ink-faint truncate">{{ c.note }}</p>
           </div>
-          <button @click="tripsStore.removeCompanion(trip.id, c.id)" class="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 text-lg leading-none">×</button>
+          <button @click="tripsStore.removeCompanion(trip.id, c.id)" class="text-ink-faint/50 hover:text-airmail-red transition-colors flex-shrink-0 text-lg leading-none">×</button>
         </div>
       </div>
     </div>
@@ -42,16 +42,16 @@
 
     <!-- 天氣預報 -->
     <div>
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">天氣預報</p>
-      <div v-if="weatherLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在查詢天氣...</div>
-      <div v-else-if="weather.error" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">{{ weather.error }}</div>
-      <div v-else-if="weather.days.length === 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">暫無天氣資料</div>
+      <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest mb-3">天氣預報</p>
+      <div v-if="weatherLoading" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">正在查詢天氣...</div>
+      <div v-else-if="weather.error" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">{{ weather.error }}</div>
+      <div v-else-if="weather.days.length === 0" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">暫無天氣資料</div>
       <div v-else class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <div v-for="d in weather.days" :key="d.date" class="flex-shrink-0 w-20 bg-white rounded-2xl border border-stone-100 p-3 text-center">
-          <p class="text-xs text-slate-400 mb-1">{{ formatShortDate(d.date) }}</p>
+        <div v-for="d in weather.days" :key="d.date" class="flex-shrink-0 w-20 bg-paper-raised rounded-2xl border border-stub/70 p-3 text-center">
+          <p class="text-xs text-ink-faint mb-1 font-mono">{{ formatShortDate(d.date) }}</p>
           <p class="text-2xl mb-1">{{ weatherEmoji(d.weatherCode) }}</p>
-          <p class="text-xs text-slate-700 font-medium">{{ Math.round(d.max) }}°</p>
-          <p class="text-xs text-slate-300">{{ Math.round(d.min) }}°</p>
+          <p class="text-xs text-ink-soft font-medium font-mono">{{ Math.round(d.max) }}°</p>
+          <p class="text-xs text-ink-faint/60 font-mono">{{ Math.round(d.min) }}°</p>
         </div>
       </div>
     </div>
@@ -59,49 +59,49 @@
     <!-- 匯率參考 -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">匯率參考</p>
+        <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest">匯率參考</p>
         <select
           v-model="selectedCurrency"
-          class="text-xs border border-stone-200 rounded-lg px-2 py-1 outline-none focus:border-amber-400 bg-white text-slate-600"
+          class="text-xs border border-stub rounded-lg px-2 py-1 outline-none focus:border-airmail-blue bg-paper-raised text-ink-soft"
         >
           <option v-for="c in currencyOptions" :key="c.code" :value="c.code">{{ c.flag }} {{ c.code }}</option>
         </select>
       </div>
-      <div v-if="exchangeLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在查詢匯率...</div>
-      <div v-else-if="exchange.error" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">{{ exchange.error }}</div>
-      <div v-else-if="exchangeRate" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-4">
+      <div v-if="exchangeLoading" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">正在查詢匯率...</div>
+      <div v-else-if="exchange.error" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">{{ exchange.error }}</div>
+      <div v-else-if="exchangeRate" class="bg-paper-raised rounded-2xl border border-stub/70 p-4 space-y-4">
         <!-- 自訂金額換算 -->
         <div class="flex items-center gap-2">
-          <div class="flex-1 flex items-center border border-stone-200 rounded-xl px-3 py-2 focus-within:border-amber-400">
+          <div class="flex-1 flex items-center border border-stub rounded-xl px-3 py-2 focus-within:border-airmail-blue">
             <input
               v-model.number="exchangeAmount"
               type="number"
               min="0"
-              class="w-full outline-none text-sm"
+              class="w-full outline-none text-sm font-mono bg-transparent"
             />
-            <span class="text-xs text-slate-400 flex-shrink-0">{{ exchangeDirection === 'toForeign' ? 'TWD' : selectedCurrency }}</span>
+            <span class="text-xs text-ink-faint flex-shrink-0 font-mono">{{ exchangeDirection === 'toForeign' ? 'TWD' : selectedCurrency }}</span>
           </div>
           <button
             @click="swapExchangeDirection"
-            class="flex-shrink-0 text-stone-400 hover:text-amber-600 transition-colors p-2"
+            class="flex-shrink-0 text-ink-faint hover:text-airmail-blue transition-colors p-2"
             title="切換換算方向"
           >⇄</button>
-          <div class="flex-1 flex items-center border border-stone-100 bg-stone-50 rounded-xl px-3 py-2">
-            <span class="w-full text-sm font-semibold text-slate-800 truncate">{{ convertedAmount }}</span>
-            <span class="text-xs text-slate-400 flex-shrink-0">{{ exchangeDirection === 'toForeign' ? selectedCurrency : 'TWD' }}</span>
+          <div class="flex-1 flex items-center border border-stub/70 bg-paper rounded-xl px-3 py-2">
+            <span class="w-full text-sm font-semibold text-ink font-mono truncate">{{ convertedAmount }}</span>
+            <span class="text-xs text-ink-faint flex-shrink-0 font-mono">{{ exchangeDirection === 'toForeign' ? selectedCurrency : 'TWD' }}</span>
           </div>
         </div>
 
         <!-- 參考匯率 -->
-        <div class="flex items-center justify-around text-center pt-3 border-t border-stone-100">
+        <div class="flex items-center justify-around text-center pt-3 border-t border-stub/70">
           <div>
-            <p class="text-xs text-slate-400 mb-1">1 TWD</p>
-            <p class="text-lg font-bold text-slate-800">{{ exchangeRate.toFixed(4) }} {{ selectedCurrency }}</p>
+            <p class="text-xs text-ink-faint mb-1">1 TWD</p>
+            <p class="text-lg font-bold text-ink font-mono">{{ exchangeRate.toFixed(4) }} {{ selectedCurrency }}</p>
           </div>
-          <span class="text-stone-200">|</span>
+          <span class="text-stub">|</span>
           <div>
-            <p class="text-xs text-slate-400 mb-1">100 {{ selectedCurrency }}</p>
-            <p class="text-lg font-bold text-slate-800">{{ (100 / exchangeRate).toFixed(1) }} TWD</p>
+            <p class="text-xs text-ink-faint mb-1">100 {{ selectedCurrency }}</p>
+            <p class="text-lg font-bold text-ink font-mono">{{ (100 / exchangeRate).toFixed(1) }} TWD</p>
           </div>
         </div>
       </div>
@@ -110,32 +110,34 @@
     <!-- 準備清單 -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">準備清單</p>
+        <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest">準備清單</p>
         <button
           @click="generatePackingList"
           :disabled="packingLoading"
-          class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors bg-amber-400 hover:bg-amber-500 text-slate-900 disabled:opacity-50"
+          class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors bg-airmail-red hover:bg-airmail-red/90 text-paper-raised disabled:opacity-50"
         >{{ packingLoading ? '生成中...' : (packingList.length ? '重新生成' : 'AI 生成清單') }}</button>
       </div>
 
-      <div v-if="packingLoading" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">正在生成清單...</div>
+      <div v-if="packingLoading" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">正在生成清單...</div>
 
-      <div v-else-if="packingList.length === 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+      <div v-else-if="packingError" class="text-airmail-red/80 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">{{ packingError }}</div>
+
+      <div v-else-if="packingList.length === 0" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">
         還沒有準備清單，點「AI 生成清單」開始
       </div>
 
-      <div v-else class="bg-white rounded-2xl border border-stone-100 divide-y divide-stone-100">
+      <div v-else class="bg-paper-raised rounded-2xl border border-stub/70 divide-y divide-stub/70">
         <div v-for="(items, category) in packingCategories" :key="category" class="p-4">
-          <p class="text-xs font-semibold text-slate-400 mb-2">{{ category }}</p>
+          <p class="text-xs font-mono font-semibold text-ink-faint mb-2 tracking-wide">{{ category }}</p>
           <div class="space-y-1.5">
             <label v-for="item in items" :key="item.id" class="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 :checked="item.checked"
                 @change="tripsStore.togglePackingItem(trip.id, item.id)"
-                class="rounded border-stone-300 text-amber-500 focus:ring-amber-400"
+                class="rounded border-stub text-airmail-blue focus:ring-airmail-blue/40"
               />
-              <span class="text-sm" :class="item.checked ? 'text-slate-300 line-through' : 'text-slate-700'">{{ item.name }}</span>
+              <span class="text-sm" :class="item.checked ? 'text-ink-faint/50 line-through' : 'text-ink-soft'">{{ item.name }}</span>
             </label>
           </div>
         </div>
@@ -261,6 +263,7 @@ onMounted(() => {
 
 // 準備清單
 const packingLoading = ref(false)
+const packingError = ref('')
 const packingList = computed(() => props.trip.packingList || [])
 const packingCategories = computed(() => {
   const groups: Record<string, PackingItem[]> = {}
@@ -272,6 +275,7 @@ const packingCategories = computed(() => {
 
 const generatePackingList = async () => {
   packingLoading.value = true
+  packingError.value = ''
   try {
     const res = await $fetch<{ categories: { category: string; items: string[] }[] }>('/api/packing-list', {
       method: 'POST',
@@ -286,8 +290,9 @@ const generatePackingList = async () => {
       c.items.map((name, i) => ({ id: `${Date.now()}_${ci}_${i}`, category: c.category, name, checked: false }))
     )
     tripsStore.setPackingList(props.trip.id, items)
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    packingError.value = err.data?.statusMessage || '生成失敗，請稍後再試'
   } finally {
     packingLoading.value = false
   }

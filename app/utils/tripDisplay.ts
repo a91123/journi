@@ -1,4 +1,4 @@
-import type { TripEntry } from '~/stores/useTripsStore'
+import type { TripEntry, Booking } from '~/stores/useTripsStore'
 
 // 行程 Tab / 地圖 Tab 共用的每日資訊（由 [id].vue 的 dayList computed 產生）
 export interface DayInfo {
@@ -64,6 +64,45 @@ export const weatherEmoji = (code: number) => {
   if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️'
   if ([95, 96, 99].includes(code)) return '⛈️'
   return '🌤️'
+}
+
+// 訂單併入行程時間軸：把訂單轉成當天的唯讀節點（起訖不同天則兩天各顯示一個）
+export interface BookingMarker {
+  id: string
+  bookingId: string
+  time: string
+  label: string
+  icon: string
+}
+
+const bookingStartLabel = (b: Booking) => {
+  const names: Record<string, string> = {
+    hotel: '入住', flight: '起飛', train: '出發', car_rental: '取車', airport_transfer: '接送'
+  }
+  const prefix = names[b.type]
+  return prefix ? `${prefix} ${b.name}` : b.name
+}
+
+const bookingEndLabel = (b: Booking) => {
+  const names: Record<string, string> = {
+    hotel: '退房', flight: '抵達', train: '抵達', car_rental: '還車'
+  }
+  const prefix = names[b.type]
+  return prefix ? `${prefix} ${b.name}` : null
+}
+
+export const getBookingMarkersForDay = (bookings: Booking[], date: string): BookingMarker[] => {
+  const markers: BookingMarker[] = []
+  for (const b of bookings || []) {
+    if (b.startDate === date) {
+      markers.push({ id: `${b.id}_start`, bookingId: b.id, time: b.startTime || '', label: bookingStartLabel(b), icon: bookingTypeIcon(b.type) })
+    }
+    if (b.endDate && b.endDate !== b.startDate && b.endDate === date) {
+      const label = bookingEndLabel(b)
+      if (label) markers.push({ id: `${b.id}_end`, bookingId: b.id, time: b.endTime || '', label, icon: bookingTypeIcon(b.type) })
+    }
+  }
+  return markers
 }
 
 export const guessCurrency = (destination: string): string => {

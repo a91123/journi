@@ -2,31 +2,23 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-slate-800">我的旅程</h1>
-        <p class="text-sm text-slate-400 mt-0.5">{{ trips.length }} 趟旅程</p>
+        <h1 class="text-2xl font-display font-bold text-ink">我的旅程</h1>
+        <p class="text-sm font-mono text-ink-faint mt-0.5 tracking-wide">{{ String(trips.length).padStart(2, '0') }} TRIPS</p>
       </div>
       <div class="flex items-center gap-2">
-        <button
-          @click="openKeyModal"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors border"
-          :class="geminiKey ? 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' : 'text-slate-500 bg-white border-stone-200 hover:border-amber-300'"
-        >
-          <span class="text-base leading-none">🔑</span>
-          <span>{{ geminiKey ? 'AI 已設定' : 'AI Key' }}</span>
-        </button>
         <NuxtLink
           to="/trips/new"
-          class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+          class="bg-airmail-red hover:bg-airmail-red/90 text-paper-raised px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
         >
           + 新增
         </NuxtLink>
       </div>
     </div>
 
-    <div v-if="trips.length === 0" class="text-center py-24">
+    <div v-if="trips.length === 0" class="text-center py-20 border-2 border-dashed border-stub rounded-2xl">
       <div class="text-5xl mb-4">🌍</div>
-      <p class="text-slate-500 font-medium">還沒有旅程</p>
-      <p class="text-slate-400 text-sm mt-1">點右上角開始規劃你的第一趟旅程</p>
+      <p class="text-ink font-display font-semibold">還沒有旅程</p>
+      <p class="text-ink-faint text-sm mt-1 font-mono">點右上角開始規劃你的第一趟旅程</p>
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -34,66 +26,26 @@
         v-for="trip in trips"
         :key="trip.id"
         :to="`/trips/${trip.id}`"
-        class="bg-white rounded-2xl border border-stone-200 p-5 hover:border-amber-300 hover:shadow-md transition-all group"
+        class="group flex bg-paper-raised rounded-2xl border border-stub overflow-hidden hover:shadow-md hover:border-ink/25 transition-all"
       >
-        <div class="flex items-start justify-between">
-          <div>
-            <h2 class="font-bold text-slate-800 text-lg group-hover:text-amber-600 transition-colors">
-              {{ trip.destination }}
-            </h2>
-            <p class="text-sm text-slate-400 mt-1">
-              {{ formatDate(trip.startDate) }} → {{ formatDate(trip.endDate) }}
-            </p>
-          </div>
-          <span class="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-            {{ trip.days }} 天
-          </span>
+        <div class="airmail-stripe w-1.5 flex-shrink-0"></div>
+        <div class="w-[72px] flex-shrink-0 flex flex-col items-center justify-center py-4">
+          <span class="font-mono text-3xl font-semibold text-ink leading-none">{{ trip.days }}</span>
+          <span class="font-mono text-[10px] tracking-widest text-ink-faint mt-1">DAYS</span>
         </div>
-        <div v-if="trip.budget" class="mt-3 text-xs text-slate-400">
-          預算 NT$ {{ Number(trip.budget).toLocaleString() }}
+        <div class="w-px perforated-v flex-shrink-0"></div>
+        <div class="flex-1 p-4 min-w-0">
+          <h2 class="font-display font-bold text-ink text-lg group-hover:text-airmail-blue transition-colors truncate">
+            {{ trip.destination }}
+          </h2>
+          <p class="font-mono text-xs text-ink-faint mt-1.5 tracking-wide">
+            {{ formatDate(trip.startDate) }} → {{ formatDate(trip.endDate) }}
+          </p>
+          <div v-if="trip.budget" class="mt-2.5 inline-block font-mono text-[11px] text-stamp-gold border border-stamp-gold/40 rounded px-1.5 py-0.5">
+            NT$ {{ Number(trip.budget).toLocaleString() }}
+          </div>
         </div>
       </NuxtLink>
-    </div>
-
-    <!-- API Key Modal -->
-    <div
-      v-if="showKeyModal"
-      class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      @click.self="showKeyModal = false"
-    >
-      <div class="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="font-bold text-slate-800">Gemini API Key</h3>
-          <button @click="showKeyModal = false" class="text-slate-300 hover:text-slate-500 text-xl leading-none">×</button>
-        </div>
-        <p class="text-xs text-slate-400">
-          Key 儲存在本機，不會上傳到伺服器。到
-          <span class="text-amber-600 font-medium">aistudio.google.com</span>
-          申請免費 Key。
-        </p>
-        <input
-          v-model="keyInput"
-          type="password"
-          placeholder="AIza..."
-          class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 font-mono"
-          @keydown.enter="confirmKey"
-        />
-        <div class="flex gap-2">
-          <button
-            @click="confirmKey"
-            class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors"
-          >
-            儲存
-          </button>
-          <button
-            v-if="geminiKey"
-            @click="clearKey"
-            class="px-4 py-2.5 text-red-400 hover:text-red-600 text-sm transition-colors"
-          >
-            清除
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -102,30 +54,8 @@
 const tripsStore = useTripsStore()
 onMounted(() => {
   tripsStore.load()
-  loadKey()
 })
 const trips = computed(() => tripsStore.trips)
-
-const { geminiKey, loadKey, saveKey } = useGeminiKey()
-
-const showKeyModal = ref(false)
-const keyInput = ref('')
-
-const openKeyModal = () => {
-  keyInput.value = geminiKey.value
-  showKeyModal.value = true
-}
-
-const confirmKey = () => {
-  saveKey(keyInput.value)
-  showKeyModal.value = false
-}
-
-const clearKey = () => {
-  saveKey('')
-  keyInput.value = ''
-  showKeyModal.value = false
-}
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr)

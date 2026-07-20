@@ -105,13 +105,13 @@
 
 ### Phase 1.5（低成本高價值，建議排在 Phase 2 帳號系統之前）
 - [ ] **JSON 匯出／匯入** — 目前資料只活在單一瀏覽器的 localStorage，換裝置或清瀏覽器資料就整個消失（含訂單、護照號碼備註）。在 Supabase 上線前先做一個保險絲，半天工，投報率最高
-- [ ] **訂單併入行程時間軸** — `trip.bookings` 目前只活在資訊 Tab，跟 `itinerary` 是平行世界，行程時間軸看不到「10:05 航班起飛」「15:00 飯店入住」這種關鍵節點。這是跟 TripIt 最大的差距；做法：儲存訂單時問「要不要排入 Day N？」，或至少在對應天數時間軸顯示唯讀訂單節點
+- [x] **訂單併入行程時間軸**（2026-07-13 完成）— `trip.bookings` 原本只活在資訊 Tab，跟 `itinerary` 是平行世界。做法：`app/utils/tripDisplay.ts` 新增 `getBookingMarkersForDay()`，把訂單依 `startDate`/`endDate` 轉成當天的唯讀節點（hotel/flight 起訖不同天會各顯示一個「入住/退房」「起飛/抵達」）。Overview Tab（純顯示、無拖曳）跟行程項目按時間完整合併排序；行程 Tab 因為桌機欄位有拖曳排序，唯讀訂單節點改用固定在欄位最上方的「訂單節點區」呈現，不混進可拖曳的 itinerary 陣列，避免影響 SortableJS 邏輯。點節點會切到「資訊」Tab 看完整訂單
 - [ ] **「今日」自動聚焦** — 旅程進行中那幾天，打開 App 應直接跳到當天的行程 Tab，而不是停在 Day 1／上次瀏覽的 Tab。出國當下才是最需要這功能的時刻
 - [ ] **花費記錄對照預算** — `Trip.budget` 欄位存了之後只在首頁卡片露臉一次，沒有任何後續使用。要嘛做簡單記帳（花費 vs 預算進度條），要嘛乾脆拿掉這個欄位，目前狀態最尷尬
 - [ ] **唯讀分享連結（Phase 2 分享的輕量前置）** — 把行程序列化成連結或匯出 PDF，不用等 Supabase 帳號系統就能「把行程給媽媽看」
 
 ### 需要 Phase 2 一併考慮的事
-- Gemini API Key 目前要求使用者自己去 aistudio.google.com 申請，自己用沒問題，但「給親友用」時對長輩是勸退門檻。做帳號系統時 key 應該一起搬到 server 端（App 出 key 或跟帳號綁定）
+- Gemini API Key 的處理方式併入下方「Phase 2 帳號系統規劃」的 Key 策略一起做
 - 天氣 16 天預報限制目前直接顯示錯誤訊息，容易讓使用者以為壞掉；改成「出發前 16 天內可查詢（還有 N 天）」體感較好
 - 旅伴 note 目前拿來放護照號碼，明文存在 localStorage，任何共用電腦都看得到；等帳號系統上線前，UI 上不宜鼓勵使用者填證件號碼
 
@@ -124,6 +124,43 @@
 - [ ] 行程分享給同行者
 - [ ] 行事曆同步（Google Calendar）
 - [ ] 出發提醒通知
+
+#### Phase 2 帳號系統規劃（2026-07-13 訂）
+
+**資料層：Trip 整包存 JSONB，不拆關聯表**
+- 現有巢狀結構（`itinerary`/`standby`/`bookings`/`packingList`/`companions`）拆成關聯表要動全部 store actions + 重新設計 RLS，成本太高
+- 做法：`trips` table 只把 `destination`/`startDate`/`endDate`/`days`/`budget`/`currency` 打平成欄位，其餘巢狀陣列整包塞進一個 `data JSONB` 欄位，結構直接沿用目前 localStorage 的 `Trip` interface，搬家幾乎零改動
+- `user_id uuid references auth.users` + RLS `user_id = auth.uid()`，多租戶隔離就靠這一條
+
+**登入方式：Google OAuth 優先，Email Magic Link 備援**
+- 對象是親友非工程背景，密碼是額外門檻；Google OAuth 一鍵登入摩擦最低，且申請 Gemini key 本來就需要 Google 帳號，體驗上順勢串起來
+- Magic link 當備援（沒有/不想用 Google 帳號的人）
+- 用 `@nuxtjs/supabase`（`nuxt.config.ts` 裡已裝但註解掉），開帳號系統時打開
+
+**舊資料搬家（localStorage → Supabase）**
+- 第一次登入時偵測 localStorage 是否有舊的 `journi_trips`，跳出「要不要把本機的行程搬到雲端？」
+- 逐筆寫進 Supabase，成功後**先不要**清 localStorage，當作保險絲，等使用者確認雲端資料無誤再讓他手動清
+
+**讀寫模式：local-first + 背景同步，不要整批改成 await API**
+- 現在所有元件、store actions 都是同步操作 Pinia state、畫面立刻反應；如果每個 action 都改成等 Supabase 回應，要動的檔案面過大，而且旅遊當下常常沒網路
+- 做法：Pinia state 繼續當唯一即時資料來源，`updateTrip`/`addBooking` 等 action 寫完本地 state 後，另外呼叫一個 debounce 過的背景同步函式，把整包 `trip` 物件 replace 寫回 Supabase（跟現在「整包物件覆寫」的邏輯一致，只是多寫一個目的地）
+- 之後真的要做多裝置即時同步或多人協作編輯，再考慮 Supabase Realtime 訂閱
+
+**Gemini Key：登入後預設吃 server 端 key**
+- 現在 server 端已經支援「沒傳 apiKey 時 fallback 用 `config.geminiApiKey`」（`recommendations.post.js`／`packing-list.post.ts`／`weather.get.ts`／`parse-confirmation.post.ts` 都這樣寫），帳號系統上線後對登入使用者直接不要求自己申請 key，一律吃 server 端 key，這是對長輩最大的勸退門檻，順便解掉
+- 保留「進階選項可填自己的 key」給想省 App 主 quota 的人，非必填，UI 上維持現有的 header key 設定入口
+
+**分享：唯讀連結先做，帳號對帳號協作後做**
+- 唯讀連結（呼應 Phase 1.5 那項）：`trips.share_token`（nullable uuid），開啟分享時產生；`/share/[token]` 走一支不需登入的 server API，用 service role key 查詢對應 trip 回傳唯讀資料，不透過前端 RLS 直接曝露
+- 帳號對帳號協作編輯：等唯讀連結的使用情境驗證過再做，需要 `trip_collaborators` 表（`trip_id`, `user_id`, `role: viewer|editor`）+ 對應 RLS policy
+
+**建議實作順序**
+1. `@nuxtjs/supabase` 打開 + Google OAuth 設定 + 登入/登出 UI
+2. `trips` table + RLS + 搬家 flow（含保留 localStorage 當保險）
+3. Store actions 加背景同步（local-first）
+4. 唯讀分享連結（`share_token` + `/share/[token]` API）
+5. Gemini key 改成登入後預設吃 server key
+6. 行事曆同步、出發提醒（維持排在後面）
 
 ### Phase 3（商業化）
 - [ ] 真實機票 / 飯店查價 API

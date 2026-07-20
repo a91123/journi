@@ -5,15 +5,15 @@
     class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
     @click.self="emit('close')"
   >
-    <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
-      <h2 class="text-lg font-bold text-slate-800">編輯旅程</h2>
+    <div class="bg-paper-raised rounded-2xl w-full max-w-md p-6 space-y-4 border border-stub">
+      <h2 class="text-lg font-display font-bold text-ink">編輯旅程</h2>
 
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">目的地</label>
+        <label class="block text-sm font-semibold text-ink-soft mb-1.5">目的地</label>
         <input
           v-model="editForm.destination"
           type="text"
-          class="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-amber-400 transition-all"
+          class="w-full border border-stub rounded-xl px-4 py-2.5 text-sm outline-none focus:border-airmail-blue transition-all bg-paper"
         />
       </div>
 
@@ -25,28 +25,28 @@
       />
 
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">
-          預算 <span class="text-slate-400 font-normal">（台幣，選填）</span>
+        <label class="block text-sm font-semibold text-ink-soft mb-1.5">
+          預算 <span class="text-ink-faint font-normal">（台幣，選填）</span>
         </label>
         <input
           v-model="editForm.budget"
           type="number"
-          class="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-amber-400 transition-all"
+          class="w-full border border-stub rounded-xl px-4 py-2.5 text-sm outline-none focus:border-airmail-blue transition-all bg-paper"
         />
       </div>
 
-      <div v-if="displacedCount > 0" class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+      <div v-if="displacedCount > 0" class="bg-stamp-gold/10 border border-stamp-gold/40 rounded-xl px-4 py-3 text-sm text-stamp-gold">
         日期縮短後，{{ displacedCount }} 個行程將退回備用清單。
       </div>
 
       <div class="flex gap-2 pt-1">
         <button
           @click="saveEdit"
-          class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors"
+          class="flex-1 bg-airmail-red hover:bg-airmail-red/90 text-paper-raised py-2.5 rounded-xl text-sm font-bold transition-colors"
         >儲存</button>
         <button
           @click="emit('close')"
-          class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors"
+          class="px-5 py-2.5 text-ink-faint hover:text-ink-soft text-sm transition-colors"
         >取消</button>
       </div>
     </div>

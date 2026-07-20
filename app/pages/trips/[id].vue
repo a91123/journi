@@ -2,10 +2,10 @@
   <div v-if="trip">
     <div class="mb-6">
       <div class="flex items-baseline gap-2">
-        <h1 class="text-4xl font-black text-stone-900 leading-tight tracking-tight">{{ trip.destination }}</h1>
+        <h1 class="text-4xl font-display font-bold text-ink leading-tight tracking-tight">{{ trip.destination }}</h1>
         <button
           @click="showEditModal = true"
-          class="text-stone-300 hover:text-stone-500 transition-colors flex-shrink-0"
+          class="text-ink-faint/60 hover:text-ink-faint transition-colors flex-shrink-0"
           aria-label="編輯旅程"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -14,11 +14,11 @@
           </svg>
         </button>
       </div>
-      <div class="flex items-center gap-3 mt-2">
-        <p class="text-sm text-stone-500">{{ formatShortDate(trip.startDate) }} – {{ formatShortDate(trip.endDate) }}</p>
-        <span class="w-1 h-1 rounded-full bg-stone-300"></span>
-        <span class="text-sm font-semibold text-amber-600">{{ trip.days }} 天</span>
-        <span v-if="trip.budget" class="text-sm text-stone-400">・NT$ {{ Number(trip.budget).toLocaleString() }}</span>
+      <div class="flex items-center gap-3 mt-2 font-mono text-sm">
+        <p class="text-ink-faint">{{ formatShortDate(trip.startDate) }} – {{ formatShortDate(trip.endDate) }}</p>
+        <span class="w-1 h-1 rounded-full bg-stub"></span>
+        <span class="font-semibold text-airmail-blue">{{ trip.days }} DAYS</span>
+        <span v-if="trip.budget" class="text-ink-faint">・NT$ {{ Number(trip.budget).toLocaleString() }}</span>
       </div>
     </div>
 
@@ -30,15 +30,15 @@
     />
 
     <!-- Tab (手機) -->
-    <div class="flex gap-1 bg-stone-100 rounded-xl p-1 mb-5 lg:hidden">
+    <div class="flex gap-1 bg-stub/40 rounded-xl p-1 mb-5 lg:hidden">
       <button
         v-for="tab in tabs"
         :key="tab.key"
         @click="activeTab = tab.key"
         class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
         :class="activeTab === tab.key
-          ? 'bg-white text-slate-800 shadow-sm'
-          : 'text-slate-400 hover:text-slate-600'"
+          ? 'bg-paper-raised text-ink shadow-sm'
+          : 'text-ink-faint hover:text-ink-soft'"
       >
         {{ tab.label }}
       </button>
@@ -50,15 +50,15 @@
       <!-- 左側欄（桌機） -->
       <div class="hidden lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-6">
         <!-- 垂直 Tab 導覽 -->
-        <div class="bg-white rounded-2xl border border-stone-200 p-2">
+        <div class="bg-paper-raised rounded-2xl border border-stub p-2">
           <button
             v-for="tab in desktopTabs"
             :key="tab.key"
             @click="activeTab = tab.key"
             class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
             :class="activeTab === tab.key
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-stone-50'"
+              ? 'bg-ink text-paper'
+              : 'text-ink-soft hover:text-ink hover:bg-paper'"
           >{{ tab.label }}</button>
         </div>
 
@@ -75,12 +75,14 @@
           v-model:active-day="activeDay"
           @add-desktop="entryModalRef?.openForAdd($event)"
           @edit-desktop="entryModalRef?.openForEdit($event)"
+          @goto-info="activeTab = 'info'"
         />
 
         <TripOverviewTab
           v-else-if="activeTab === 'overview'"
           :trip="trip"
           :day-list="dayList"
+          @goto-info="activeTab = 'info'"
         />
 
         <TripMapTab
@@ -105,7 +107,7 @@
     <TripStandbyDrawer :trip="trip" :day-list="dayList" />
   </div>
 
-  <div v-else class="text-center py-24 text-slate-400">找不到這趟旅程</div>
+  <div v-else class="text-center py-24 text-ink-faint font-mono">找不到這趟旅程</div>
 </template>
 
 <script setup lang="ts">

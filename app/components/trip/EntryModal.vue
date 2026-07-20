@@ -4,16 +4,16 @@
     class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
     @click.self="show = false"
   >
-    <div class="bg-white rounded-2xl w-full max-w-sm p-5 space-y-3">
+    <div class="bg-paper-raised rounded-2xl w-full max-w-sm p-5 space-y-3 border border-stub">
       <div class="flex items-center justify-between">
-        <h3 class="font-bold text-slate-800">
+        <h3 class="font-display font-bold text-ink">
           {{ editingEntryId ? '編輯行程' : '新增行程' }}・Day {{ dayIndex + 1 }}
         </h3>
-        <button @click="show = false" class="text-slate-300 hover:text-slate-500 text-xl leading-none">×</button>
+        <button @click="show = false" class="text-ink-faint/60 hover:text-ink-faint text-xl leading-none">×</button>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <TimePicker v-model="form.time" />
-        <select v-model="form.category" class="border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 w-full">
+        <select v-model="form.category" class="border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue w-full bg-paper">
           <option value="attraction">🏛 景點</option>
           <option value="food">🍜 美食</option>
           <option value="transport">🚌 交通</option>
@@ -22,15 +22,15 @@
           <option value="other">📌 其他</option>
         </select>
       </div>
-      <input v-model="form.name" placeholder="活動名稱" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
-      <input v-model="form.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
-      <input v-model="form.mapUrl" placeholder="📍 Google Maps 連結（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+      <input v-model="form.name" placeholder="活動名稱" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
+      <input v-model="form.note" placeholder="備註（選填）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
+      <input v-model="form.mapUrl" placeholder="📍 Google Maps 連結（選填）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
       <div class="flex gap-2 pt-1">
         <button
           @click="save"
-          class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition-colors"
+          class="flex-1 bg-airmail-red hover:bg-airmail-red/90 text-paper-raised py-2.5 rounded-xl text-sm font-bold transition-colors"
         >{{ editingEntryId ? '儲存' : '新增' }}</button>
-        <button @click="show = false" class="px-5 py-2.5 text-slate-400 hover:text-slate-600 text-sm transition-colors">取消</button>
+        <button @click="show = false" class="px-5 py-2.5 text-ink-faint hover:text-ink-soft text-sm transition-colors">取消</button>
       </div>
     </div>
   </div>

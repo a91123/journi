@@ -1,0 +1,29 @@
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+}
+
+/* Airmail envelope stripe — signature edge treatment, used sparingly */
+.airmail-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    theme('colors.airmail.red') 0,
+    theme('colors.airmail.red') 10px,
+    theme('colors.paper.raised') 10px,
+    theme('colors.paper.raised') 13px,
+    theme('colors.airmail.blue') 13px,
+    theme('colors.airmail.blue') 23px,
+    theme('colors.paper.raised') 23px,
+    theme('colors.paper.raised') 26px
+  );
+}
+
+/* Perforation — ticket tear line between stub and body */
+.perforated-v {
+  background-image: radial-gradient(circle, theme('colors.paper.DEFAULT') 1.5px, transparent 1.6px);
+  background-size: 100% 10px;
+  background-repeat: repeat-y;
+}

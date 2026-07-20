@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-1 border border-stone-200 rounded-xl px-3 py-2.5 focus-within:border-amber-400 transition-colors bg-white">
+  <div class="flex items-center gap-1 border border-stub rounded-xl px-3 py-2.5 focus-within:border-airmail-blue transition-colors bg-paper">
     <input
       :value="hours"
       @input="onHours"
@@ -8,9 +8,9 @@
       min="0"
       max="23"
       placeholder="HH"
-      class="w-8 text-center text-sm font-mono outline-none appearance-none bg-transparent text-slate-800 placeholder:text-slate-300"
+      class="w-8 text-center text-sm font-mono outline-none appearance-none bg-transparent text-ink placeholder:text-stub"
     />
-    <span class="text-slate-400 font-mono text-sm select-none">:</span>
+    <span class="text-ink-faint font-mono text-sm select-none">:</span>
     <input
       :value="minutes"
       @input="onMinutes"
@@ -20,7 +20,7 @@
       max="59"
       step="5"
       placeholder="MM"
-      class="w-8 text-center text-sm font-mono outline-none appearance-none bg-transparent text-slate-800 placeholder:text-slate-300"
+      class="w-8 text-center text-sm font-mono outline-none appearance-none bg-transparent text-ink placeholder:text-stub"
     />
   </div>
 </template>

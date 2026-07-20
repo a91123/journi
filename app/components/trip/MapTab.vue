@@ -7,10 +7,10 @@
         @click="emit('update:activeDay', index)"
         class="flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-xl border transition-all text-sm"
         :class="activeDay === index
-          ? 'bg-amber-400 border-amber-400 text-stone-900 font-bold shadow-sm'
-          : 'bg-white border-stone-200 text-stone-400 hover:border-amber-300 hover:text-stone-600'"
+          ? 'bg-ink border-ink text-paper font-bold shadow-sm'
+          : 'bg-paper-raised border-stub text-ink-faint hover:border-airmail-blue/40 hover:text-ink-soft'"
       >
-        <span class="font-bold">Day {{ index + 1 }}</span>
+        <span class="font-bold font-mono">DAY {{ index + 1 }}</span>
         <span class="text-xs opacity-70">{{ day.label }}</span>
       </button>
     </div>
@@ -19,30 +19,30 @@
       <div class="relative flex-1 min-w-0" :class="{ 'map-placing': placingEntry }">
         <!-- 注意：這個 div 交給 Leaflet 管理，不能綁任何動態 class/style，
              否則 Vue patch 時會把 Leaflet 執行期加上的 class（leaflet-container 等）洗掉 -->
-        <div ref="mapContainer" class="w-full h-96 rounded-2xl border border-stone-200 overflow-hidden z-0"></div>
+        <div ref="mapContainer" class="w-full h-96 rounded-2xl border border-stub overflow-hidden z-0"></div>
         <!-- 點地圖設定位置模式的提示 banner -->
         <div v-if="placingEntry" class="absolute top-3 left-3 right-3 flex justify-center pointer-events-none">
-          <div class="flex items-center gap-2 bg-slate-900/90 text-white rounded-xl px-4 py-2.5 shadow-lg pointer-events-auto max-w-full">
+          <div class="flex items-center gap-2 bg-ink/90 text-paper rounded-xl px-4 py-2.5 shadow-lg pointer-events-auto max-w-full">
             <span class="text-xs leading-snug">在地圖上點一下，設定「<span class="font-bold">{{ placingEntry.name }}</span>」的位置</span>
-            <button @click="placingEntry = null" class="text-xs font-bold text-amber-400 hover:text-amber-300 flex-shrink-0 transition-colors">取消</button>
+            <button @click="placingEntry = null" class="text-xs font-bold text-stamp-gold hover:text-stamp-gold/80 flex-shrink-0 transition-colors">取消</button>
           </div>
         </div>
-        <div v-if="currentDayEntries.length === 0" class="absolute inset-0 flex items-center justify-center bg-white/90 rounded-2xl">
-          <div class="text-center text-stone-300">
+        <div v-if="currentDayEntries.length === 0" class="absolute inset-0 flex items-center justify-center bg-paper-raised/90 rounded-2xl">
+          <div class="text-center text-ink-faint/50">
             <p class="text-3xl mb-2">🗺️</p>
             <p class="text-sm">這天還沒有行程</p>
           </div>
         </div>
-        <div v-else-if="mapLoading" class="absolute inset-0 flex items-center justify-center bg-white/50 rounded-2xl pointer-events-none">
-          <div class="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm border border-stone-100">
-            <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-            <span class="text-xs text-slate-500">定位中 {{ mapProgress }}</span>
+        <div v-else-if="mapLoading" class="absolute inset-0 flex items-center justify-center bg-paper-raised/50 rounded-2xl pointer-events-none">
+          <div class="flex items-center gap-2 bg-paper-raised rounded-full px-4 py-2 shadow-sm border border-stub/60">
+            <div class="w-4 h-4 border-2 border-airmail-blue border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-ink-faint">定位中 {{ mapProgress }}</span>
           </div>
         </div>
         <button
           v-if="!mapLoading && currentDayEntries.length > 0"
           @click="resetMapZoom"
-          class="absolute top-3 right-3 bg-white rounded-full w-9 h-9 flex items-center justify-center shadow-md border border-stone-300 text-stone-600 hover:text-amber-600 transition-colors"
+          class="absolute top-3 right-3 bg-paper-raised rounded-full w-9 h-9 flex items-center justify-center shadow-md border border-stub text-ink-soft hover:text-airmail-blue transition-colors"
           :class="placingEntry ? 'hidden' : ''"
           title="重設縮放"
         >
@@ -53,30 +53,30 @@
       </div>
 
       <!-- 景點詳細資訊 -->
-      <div v-if="selectedMapEntry" class="mt-3 lg:mt-0 lg:w-72 lg:flex-shrink-0 bg-white rounded-2xl border border-stone-200 p-4 space-y-2">
+      <div v-if="selectedMapEntry" class="mt-3 lg:mt-0 lg:w-72 lg:flex-shrink-0 bg-paper-raised rounded-2xl border border-stub p-4 space-y-2">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <p class="text-xs text-stone-400">{{ categoryLabel(selectedMapEntry.category) }}</p>
-            <p class="font-bold text-stone-900 leading-snug">{{ selectedMapEntry.name }}</p>
+            <p class="text-xs text-ink-faint">{{ categoryLabel(selectedMapEntry.category) }}</p>
+            <p class="font-display font-bold text-ink leading-snug">{{ selectedMapEntry.name }}</p>
           </div>
-          <button @click="selectedMapEntry = null" class="text-stone-300 hover:text-stone-500 text-xl leading-none flex-shrink-0">×</button>
+          <button @click="selectedMapEntry = null" class="text-ink-faint/60 hover:text-ink-faint text-xl leading-none flex-shrink-0">×</button>
         </div>
-        <p v-if="selectedMapEntry.time" class="text-sm text-amber-600 font-mono font-semibold">{{ selectedMapEntry.time }}</p>
-        <p v-if="selectedMapEntry.note" class="text-sm text-stone-600 leading-relaxed">{{ selectedMapEntry.note }}</p>
+        <p v-if="selectedMapEntry.time" class="text-sm text-airmail-blue font-mono font-semibold">{{ selectedMapEntry.time }}</p>
+        <p v-if="selectedMapEntry.note" class="text-sm text-ink-soft leading-relaxed">{{ selectedMapEntry.note }}</p>
         <a
           v-if="selectedMapEntry.mapUrl"
           :href="selectedMapEntry.mapUrl"
           target="_blank"
           rel="noopener"
-          class="text-xs text-amber-600 hover:underline inline-block"
+          class="text-xs text-airmail-blue hover:underline inline-block"
         >在 Google Maps 開啟 ↗</a>
         <button
           @click="emit('edit-entry', selectedMapEntry)"
-          class="w-full text-xs font-bold bg-stone-100 hover:bg-stone-200 text-slate-700 rounded-lg py-2 transition-colors"
+          class="w-full text-xs font-bold bg-stub/30 hover:bg-stub/50 text-ink-soft rounded-lg py-2 transition-colors"
         >✎ 編輯這筆行程</button>
         <button
           @click="startPlacing(selectedMapEntry)"
-          class="w-full text-xs font-bold bg-stone-100 hover:bg-stone-200 text-slate-700 rounded-lg py-2 transition-colors"
+          class="w-full text-xs font-bold bg-stub/30 hover:bg-stub/50 text-ink-soft rounded-lg py-2 transition-colors"
         >📍 點地圖修正定位</button>
       </div>
     </div>
@@ -86,26 +86,26 @@
         :href="googleMapsRouteUrl"
         target="_blank"
         rel="noopener"
-        class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+        class="text-xs font-bold text-airmail-blue hover:text-airmail-blue/80 flex items-center gap-1"
       ><span>🧭</span><span>用 Google Maps 開啟整天路線</span></a>
       <button
         v-if="lastPinMove"
         @click="undoPinMove"
-        class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg px-3 py-1.5 transition-colors"
+        class="text-xs font-bold text-ink-soft hover:text-ink bg-stub/30 hover:bg-stub/50 rounded-lg px-3 py-1.5 transition-colors"
       >↩ 復原「{{ lastPinMove.name }}」的定位</button>
       <div v-if="mapUnlocatedEntries.length > 0" class="flex flex-wrap items-center justify-center gap-1.5">
-        <span class="text-xs text-slate-400">{{ mapUnlocatedEntries.length }} 個地點定位不到，點名稱後在地圖上點選位置：</span>
+        <span class="text-xs text-ink-faint">{{ mapUnlocatedEntries.length }} 個地點定位不到，點名稱後在地圖上點選位置：</span>
         <button
           v-for="e in mapUnlocatedEntries"
           :key="e.id"
           @click="startPlacing(e)"
           class="text-xs font-medium border rounded-full px-3 py-1 transition-colors"
           :class="placingEntry?.id === e.id
-            ? 'bg-slate-900 border-slate-900 text-white'
-            : 'bg-white border-stone-200 text-slate-600 hover:border-amber-400 hover:text-amber-600'"
+            ? 'bg-ink border-ink text-paper'
+            : 'bg-paper-raised border-stub text-ink-soft hover:border-airmail-blue hover:text-airmail-blue'"
         >📍 {{ e.name }}</button>
       </div>
-      <p class="text-xs text-slate-300 text-center">
+      <p class="text-xs text-ink-faint/60 text-center">
         定位不準可以拖曳 pin 或點「修正定位」・站間標示為直線距離，非實際路徑
       </p>
     </div>
@@ -214,14 +214,14 @@ const geocodeEntry = async (entry: TripEntry): Promise<{ lat: number; lon: numbe
 }
 
 const numberIcon = (n: number) => leafletInstance.divIcon({
-  html: `<div style="background:#f59e0b;color:#1c1917;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${n}</div>`,
+  html: `<div style="background:#2C5282;color:#FFFDF8;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:'IBM Plex Mono',monospace;border:2px solid #FFFDF8;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${n}</div>`,
   className: '',
   iconSize: [26, 26],
   iconAnchor: [13, 13]
 })
 
 const distanceLabelIcon = (text: string) => leafletInstance.divIcon({
-  html: `<div style="display:inline-block;background:white;color:#57534e;padding:5px 12px;line-height:1;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid #d6d3d1;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${text}</div>`,
+  html: `<div style="display:inline-block;background:#FFFDF8;color:#4A5A6A;padding:5px 12px;line-height:1;border-radius:6px;font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace;white-space:nowrap;border:1px solid #DCD3BE;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${text}</div>`,
   className: ''
 })
 
@@ -279,7 +279,7 @@ const renderMapMarkers = async () => {
 
   mapFitPoints.value = points
   if (points.length > 1) {
-    mapPolyline = leafletInstance.polyline(points, { color: '#f59e0b', weight: 3 }).addTo(leafletMap)
+    mapPolyline = leafletInstance.polyline(points, { color: '#2C5282', weight: 3 }).addTo(leafletMap)
     for (let i = 0; i < points.length - 1; i++) {
       const [lat1, lon1] = points[i]!
       const [lat2, lon2] = points[i + 1]!

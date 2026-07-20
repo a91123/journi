@@ -2,31 +2,31 @@
   <!-- 訂單管理中心 -->
   <div>
     <div class="flex items-center justify-between mb-3">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">我的訂單</p>
+      <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest">我的訂單</p>
       <button
         @click="showAddBooking = !showAddBooking"
         class="text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
-        :class="showAddBooking ? 'bg-slate-100 text-slate-500' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+        :class="showAddBooking ? 'bg-stub/40 text-ink-soft' : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
       >{{ showAddBooking ? '收起' : '+ 新增' }}</button>
     </div>
 
     <!-- 新增訂單面板 -->
-    <div v-if="showAddBooking" ref="addBookingEl" class="bg-white rounded-2xl border border-stone-100 p-4 space-y-3 mb-3">
+    <div v-if="showAddBooking" ref="addBookingEl" class="bg-paper-raised rounded-2xl border border-stub/70 p-4 space-y-3 mb-3">
       <div class="flex gap-2">
         <button
           @click="confirmMode = 'text'"
           class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-          :class="confirmMode === 'text' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+          :class="confirmMode === 'text' ? 'bg-ink text-paper' : 'bg-stub/30 text-ink-soft hover:bg-stub/50'"
         >貼上文字</button>
         <button
           @click="confirmMode = 'pdf'"
           class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-          :class="confirmMode === 'pdf' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+          :class="confirmMode === 'pdf' ? 'bg-ink text-paper' : 'bg-stub/30 text-ink-soft hover:bg-stub/50'"
         >上傳 PDF</button>
         <button
           @click="confirmMode = 'manual'"
           class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-          :class="confirmMode === 'manual' ? 'bg-amber-400 text-slate-900' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+          :class="confirmMode === 'manual' ? 'bg-ink text-paper' : 'bg-stub/30 text-ink-soft hover:bg-stub/50'"
         >手動新增</button>
       </div>
 
@@ -35,23 +35,23 @@
         v-model="confirmText"
         placeholder="把確認信的文字複製貼上來..."
         rows="5"
-        class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 resize-none"
+        class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue resize-none bg-paper"
       />
 
       <div v-else-if="confirmMode === 'pdf'">
         <label
-          class="flex flex-col items-center gap-2 py-7 border-2 border-dashed border-stone-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors"
-          :class="confirmFile ? 'border-emerald-300 bg-emerald-50' : ''"
+          class="flex flex-col items-center gap-2 py-7 border-2 border-dashed border-stub rounded-xl cursor-pointer hover:border-airmail-blue/40 transition-colors"
+          :class="confirmFile ? 'border-stamp-gold/50 bg-stamp-gold/10' : ''"
         >
           <span class="text-2xl">{{ confirmFile ? '📄' : '📎' }}</span>
-          <span class="text-sm text-slate-500">{{ confirmFile ? confirmFile.name : '點擊選擇 PDF 檔案' }}</span>
+          <span class="text-sm text-ink-faint">{{ confirmFile ? confirmFile.name : '點擊選擇 PDF 檔案' }}</span>
           <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="onFileChange" />
         </label>
       </div>
 
       <!-- 手動新增表單（機場接送等不需要 AI 解析的項目） -->
       <div v-else class="space-y-2">
-        <select v-model="manualBooking.type" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 bg-white">
+        <select v-model="manualBooking.type" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper">
           <option value="airport_transfer">🚐 機場接送</option>
           <option value="hotel">🏨 住宿</option>
           <option value="flight">✈️ 機票</option>
@@ -60,14 +60,14 @@
           <option value="ticket">🎟 票券</option>
           <option value="other">📋 其他</option>
         </select>
-        <input v-model="manualBooking.name" placeholder="名稱（如：接機 - 桃園機場）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+        <input v-model="manualBooking.name" placeholder="名稱（如：接機 - 桃園機場）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
         <div class="grid grid-cols-2 gap-2">
-          <input v-model="manualBooking.startDate" type="date" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+          <input v-model="manualBooking.startDate" type="date" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper font-mono" />
           <TimePicker v-model="manualBooking.startTime" />
         </div>
-        <input v-model="manualBooking.location" placeholder="地點（如：第一航廈入境大廳）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
-        <input v-model="manualBooking.confirmationNumber" placeholder="航班號 / 訂單號（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
-        <input v-model="manualBooking.note" placeholder="備註（選填）" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400" />
+        <input v-model="manualBooking.location" placeholder="地點（如：第一航廈入境大廳）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
+        <input v-model="manualBooking.confirmationNumber" placeholder="航班號 / 訂單號（選填）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
+        <input v-model="manualBooking.note" placeholder="備註（選填）" class="w-full border border-stub rounded-xl px-3 py-2.5 text-sm outline-none focus:border-airmail-blue bg-paper" />
       </div>
 
       <button
@@ -76,8 +76,8 @@
         :disabled="confirmLoading || (confirmMode === 'text' ? !confirmText.trim() : !confirmFile)"
         class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
         :class="confirmLoading || (confirmMode === 'text' ? !confirmText.trim() : !confirmFile)
-          ? 'bg-stone-100 text-slate-400 cursor-not-allowed'
-          : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+          ? 'bg-stub/40 text-ink-faint cursor-not-allowed'
+          : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
       >{{ confirmLoading ? '解析中...' : 'AI 解析' }}</button>
 
       <button
@@ -85,41 +85,41 @@
         @click="saveManualBooking"
         :disabled="!manualBooking.name.trim()"
         class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors"
-        :class="!manualBooking.name.trim() ? 'bg-stone-100 text-slate-400 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-slate-900'"
+        :class="!manualBooking.name.trim() ? 'bg-stub/40 text-ink-faint cursor-not-allowed' : 'bg-airmail-red hover:bg-airmail-red/90 text-paper-raised'"
       >新增訂單</button>
 
-      <div v-if="confirmError" class="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2">{{ confirmError }}</div>
+      <div v-if="confirmError" class="text-sm text-airmail-red bg-airmail-red/10 rounded-xl px-3 py-2">{{ confirmError }}</div>
 
       <!-- 解析結果 → 確認後存入 -->
       <div v-if="parsedBookings.length > 0" class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">解析結果</p>
-          <button @click="saveAllBookings" class="text-xs font-bold text-amber-600 hover:text-amber-700">全部儲存</button>
+          <p class="text-xs font-mono font-semibold text-ink-faint uppercase tracking-widest">解析結果</p>
+          <button @click="saveAllBookings" class="text-xs font-bold text-airmail-blue hover:text-airmail-blue/80">全部儲存</button>
         </div>
         <div
           v-for="(b, i) in parsedBookings"
           :key="i"
           class="border rounded-xl p-3 space-y-1 transition-colors"
-          :class="b._saved ? 'border-emerald-200 bg-emerald-50' : 'border-stone-100'"
+          :class="b._saved ? 'border-stamp-gold/40 bg-stamp-gold/10' : 'border-stub/70'"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-base leading-none">{{ bookingTypeIcon(b.type) }}</span>
-              <span class="font-medium text-slate-800 text-sm">{{ b.name }}</span>
+              <span class="font-medium text-ink text-sm">{{ b.name }}</span>
             </div>
-            <span v-if="b._saved" class="text-xs text-emerald-500 font-medium">已儲存</span>
+            <span v-if="b._saved" class="text-xs text-stamp-gold font-medium">已儲存</span>
             <button
               v-else
               @click="saveBooking(b, i)"
-              class="text-xs bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded-lg font-bold transition-colors"
+              class="text-xs bg-airmail-red hover:bg-airmail-red/90 text-paper-raised px-3 py-1 rounded-lg font-bold transition-colors"
             >儲存</button>
           </div>
-          <p v-if="b.startDate" class="text-xs text-slate-400">
+          <p v-if="b.startDate" class="text-xs text-ink-faint font-mono">
             {{ b.startDate }}{{ b.startTime ? ' ' + b.startTime : '' }}
             <template v-if="b.endDate && b.endDate !== b.startDate"> → {{ b.endDate }}{{ b.endTime ? ' ' + b.endTime : '' }}</template>
           </p>
-          <p v-if="b.location" class="text-xs text-slate-400 truncate">📍 {{ b.location }}</p>
-          <p v-if="b.confirmationNumber" class="text-xs text-slate-300">訂單號 {{ b.confirmationNumber }}</p>
+          <p v-if="b.location" class="text-xs text-ink-faint truncate">📍 {{ b.location }}</p>
+          <p v-if="b.confirmationNumber" class="text-xs text-ink-faint/60 font-mono">訂單號 {{ b.confirmationNumber }}</p>
         </div>
       </div>
     </div>
@@ -133,19 +133,19 @@
           @click="activeBookingFilter = f.value"
           class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
           :class="activeBookingFilter === f.value
-            ? 'bg-amber-400 text-slate-900'
-            : 'bg-stone-100 text-slate-500 hover:bg-stone-200'"
+            ? 'bg-ink text-paper'
+            : 'bg-stub/30 text-ink-soft hover:bg-stub/50'"
         >{{ f.label }}</button>
       </div>
       <button
         v-if="activeBookingFilter !== 'all'"
         @click="quickAddBooking(activeBookingFilter as Booking['type'])"
-        class="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors flex-shrink-0"
+        class="text-xs font-bold text-airmail-blue hover:text-airmail-blue/80 transition-colors flex-shrink-0"
       >+ 新增{{ bookingTypeLabel(activeBookingFilter) }}</button>
     </div>
 
     <!-- 訂單列表 -->
-    <div v-if="tripBookings.length === 0 && !showAddBooking" class="text-slate-300 text-sm text-center py-10 bg-white rounded-2xl border border-stone-100">
+    <div v-if="tripBookings.length === 0 && !showAddBooking" class="text-ink-faint/60 text-sm text-center py-10 bg-paper-raised rounded-2xl border border-stub/70">
       還沒有訂單，點「+ 新增」貼上確認信
     </div>
 
@@ -153,44 +153,44 @@
       <div
         v-for="b in filteredBookings"
         :key="b.id"
-        class="bg-white rounded-2xl border border-stone-100 p-4 space-y-2"
+        class="bg-paper-raised rounded-2xl border border-stub/70 p-4 space-y-2"
       >
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
             <span class="text-xl leading-none flex-shrink-0">{{ bookingTypeIcon(b.type) }}</span>
             <div class="min-w-0">
-              <span class="font-semibold text-slate-800 text-sm truncate block">{{ b.name }}</span>
-              <span class="text-xs text-slate-400">{{ bookingTypeLabel(b.type) }}</span>
+              <span class="font-semibold text-ink text-sm truncate block">{{ b.name }}</span>
+              <span class="text-xs text-ink-faint">{{ bookingTypeLabel(b.type) }}</span>
             </div>
           </div>
-          <button @click="tripsStore.removeBooking(trip.id, b.id)" class="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0 text-lg leading-none">×</button>
+          <button @click="tripsStore.removeBooking(trip.id, b.id)" class="text-ink-faint/50 hover:text-airmail-red transition-colors flex-shrink-0 text-lg leading-none">×</button>
         </div>
         <div class="space-y-1 pl-7">
-          <p v-if="b.startDate" class="text-xs text-slate-500">
+          <p v-if="b.startDate" class="text-xs text-ink-soft font-mono">
             {{ b.startDate }}{{ b.startTime ? ' ' + b.startTime : '' }}
             <template v-if="b.endDate && b.endDate !== b.startDate"> → {{ b.endDate }}{{ b.endTime ? ' ' + b.endTime : '' }}</template>
           </p>
-          <p v-if="b.location" class="text-xs text-slate-400">📍 {{ b.location }}</p>
-          <p v-if="b.note" class="text-xs text-slate-400">{{ b.note }}</p>
+          <p v-if="b.location" class="text-xs text-ink-faint">📍 {{ b.location }}</p>
+          <p v-if="b.note" class="text-xs text-ink-faint">{{ b.note }}</p>
           <div class="flex items-center gap-3 pt-0.5 flex-wrap">
-            <span v-if="b.confirmationNumber" class="text-xs text-slate-300">訂單號 {{ b.confirmationNumber }}</span>
-            <span v-if="b.price" class="text-xs font-medium text-slate-500">{{ b.price }}</span>
+            <span v-if="b.confirmationNumber" class="text-xs text-ink-faint/60 font-mono">訂單號 {{ b.confirmationNumber }}</span>
+            <span v-if="b.price" class="text-xs font-medium text-stamp-gold font-mono">{{ b.price }}</span>
             <a
               v-if="(b.location || b.name) && b.type !== 'flight'"
               :href="mapsUrl(b)"
               target="_blank"
               rel="noopener noreferrer"
-              class="text-xs text-amber-500 hover:text-amber-600 font-medium transition-colors"
+              class="text-xs text-airmail-blue hover:text-airmail-blue/80 font-medium transition-colors"
             >地圖 ↗</a>
             <button
               v-if="b.qrCodes && b.qrCodes.length > 0"
               @click="toggleQr(b.id, b.qrCodes || [])"
               class="px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
-              :class="activeQrBookingId === b.id ? 'bg-amber-100 text-amber-600' : 'bg-stone-100 text-slate-500 hover:bg-amber-100 hover:text-amber-600'"
+              :class="activeQrBookingId === b.id ? 'bg-stamp-gold/20 text-stamp-gold' : 'bg-stub/30 text-ink-soft hover:bg-stamp-gold/20 hover:text-stamp-gold'"
             >QR</button>
           </div>
         </div>
-        <div v-if="b.qrCodes?.length && activeQrBookingId === b.id" class="flex flex-col items-center gap-2 pt-2 mt-1 border-t border-stone-100">
+        <div v-if="b.qrCodes?.length && activeQrBookingId === b.id" class="flex flex-col items-center gap-2 pt-2 mt-1 border-t border-stub/70">
           <img
             v-for="(url, idx) in qrImages[b.id]"
             :key="idx"
@@ -202,7 +202,7 @@
       </div>
     </div>
 
-    <div v-else-if="tripBookings.length > 0" class="text-slate-300 text-sm text-center py-8 bg-white rounded-2xl border border-stone-100">
+    <div v-else-if="tripBookings.length > 0" class="text-ink-faint/60 text-sm text-center py-8 bg-paper-raised rounded-2xl border border-stub/70">
       這個類別還沒有訂單
     </div>
   </div>
